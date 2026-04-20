@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>STRIKER – Sales Kontakte</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0c0f; --surface: #111418; --border: #1e2530;
+    --accent: #ff5c00; --accent2: #ffaa00; --text: #e8eaed;
+    --muted: #6b7280; --hotel: #0066ff; --waescherei: #00cc88;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--bg); color: var(--text); font-family: 'IBM Plex Sans', sans-serif; min-height: 100vh; }
+
+  #setup-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; padding: 2rem; text-align: center; }
+  .setup-logo { font-family: 'Bebas Neue', sans-serif; font-size: 3rem; letter-spacing: 4px; color: var(--accent); }
+  .setup-logo span { color: var(--accent2); }
+  .setup-desc { color: var(--muted); font-size: 0.85rem; margin: 1rem 0 2rem; line-height: 1.6; max-width: 320px; }
+  .setup-card { background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 1.5rem; width: 100%; max-width: 340px; }
+  .setup-card h3 { font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 1rem; }
+  .setup-btn { width: 100%; background: var(--accent); border: none; color: white; font-family: 'IBM Plex Mono', monospace; font-size: 0.8rem; letter-spacing: 2px; text-transform: uppercase; padding: 0.7rem; cursor: pointer; border-radius: 2px; margin-bottom: 0.5rem; transition: opacity 0.2s; }
+  .setup-btn:hover { opacity: 0.85; }
+  .setup-btn.sec { background: transparent; border: 1px solid var(--border); color: var(--muted); }
+  .setup-btn.sec:hover { border-color: var(--accent2); color: var(--accent2); }
+  .setup-divider { color: var(--muted); font-size: 0.7rem; margin: 0.75rem 0; font-family: 'IBM Plex Mono', monospace; }
+  .setup-input { width: 100%; background: var(--bg); border: 1px solid var(--border); color: var(--text); font-family: 'IBM Plex Mono', monospace; font-size: 0.85rem; padding: 0.6rem 0.8rem; border-radius: 2px; outline: none; margin-bottom: 0.75rem; }
+  .setup-input:focus { border-color: var(--accent); }
+
+  #app { display: none; }
+  header { padding: 1.2rem 1.2rem 0.8rem; border-bottom: 1px solid var(--border); background: #0a0c0f; display: flex; justify-content: space-between; align-items: flex-start; }
+  .logo { font-family: 'Bebas Neue', sans-serif; font-size: 2rem; letter-spacing: 3px; color: var(--accent); line-height: 1; }
+  .logo span { color: var(--accent2); }
+  .subtitle { font-family: 'IBM Plex Mono', monospace; font-size: 0.6rem; color: var(--muted); margin-top: 0.15rem; }
+  .sync-area { text-align: right; font-family: 'IBM Plex Mono', monospace; font-size: 0.62rem; }
+  .sync-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--waescherei); display: inline-block; margin-right: 3px; vertical-align: middle; }
+  .sync-dot.pulse { animation: pulse 1s infinite; background: var(--accent2); }
+  .sync-dot.err { background: #ff3333; }
+  @keyframes pulse { 0%,100%{opacity:1}50%{opacity:0.2} }
+  .logout-btn { background: transparent; border: 1px solid var(--border); color: var(--muted); font-family: 'IBM Plex Mono', monospace; font-size: 0.58rem; padding: 0.2rem 0.4rem; cursor: pointer; border-radius: 2px; margin-top: 0.4rem; }
+
+  .controls { padding: 0.7rem 1.2rem; display: flex; gap: 0.5rem; flex-wrap: wrap; border-bottom: 1px solid var(--border); background: var(--surface); position: sticky; top: 0; z-index: 10; }
+  .filter-btn { font-family: 'IBM Plex Mono', monospace; font-size: 0.68rem; letter-spacing: 1px; padding: 0.3rem 0.7rem; border: 1px solid var(--border); background: transparent; color: var(--muted); cursor: pointer; text-transform: uppercase; transition: all 0.15s; border-radius: 2px; }
+  .filter-btn.active { border-color: var(--accent); color: var(--accent); }
+  .filter-btn.fh.active { border-color: var(--hotel); color: var(--hotel); }
+  .filter-btn.fw.active { border-color: var(--waescherei); color: var(--waescherei); }
+  .search-input { flex: 1; min-width: 130px; background: var(--bg); border: 1px solid var(--border); color: var(--text); font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem; padding: 0.3rem 0.6rem; border-radius: 2px; outline: none; }
+  .search-input:focus { border-color: var(--accent); }
+  .search-input::placeholder { color: var(--muted); }
+
+  .list { padding: 0.6rem 1.2rem; }
+  .sec-label { font-family: 'IBM Plex Mono', monospace; font-size: 0.6rem; letter-spacing: 3px; text-transform: uppercase; color: var(--muted); padding: 0.7rem 0 0.35rem; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid transparent; padding: 0.8rem 0.9rem; margin-bottom: 0.35rem; border-radius: 2px; display: flex; justify-content: space-between; align-items: flex-start; gap: 0.7rem; transition: background 0.15s; }
+  .card.hotel { border-left-color: var(--hotel); }
+  .card.waescherei { border-left-color: var(--waescherei); }
+  .card.open { background: #161b22; }
+  .card-left { flex: 1; cursor: pointer; }
+  .card-name { font-weight: 600; font-size: 0.88rem; margin-bottom: 0.12rem; }
+  .card-city { font-family: 'IBM Plex Mono', monospace; font-size: 0.65rem; color: var(--muted); }
+  .badge { font-family: 'IBM Plex Mono', monospace; font-size: 0.58rem; letter-spacing: 1px; text-transform: uppercase; padding: 0.12rem 0.4rem; border-radius: 2px; cursor: pointer; white-space: nowrap; }
+  .badge.hotel { background: rgba(0,102,255,0.15); color: var(--hotel); }
+  .badge.waescherei { background: rgba(0,204,136,0.15); color: var(--waescherei); }
+  .s-badge { font-family: 'IBM Plex Mono', monospace; font-size: 0.55rem; letter-spacing: 1px; text-transform: uppercase; padding: 0.1rem 0.35rem; border-radius: 2px; margin-left: 0.3rem; vertical-align: middle; }
+  .s-k { background: rgba(0,102,255,0.15); color: #0066ff; }
+  .s-a { background: rgba(204,0,255,0.15); color: #cc00ff; }
+  .s-x { background: rgba(0,204,136,0.15); color: var(--waescherei); }
+
+  .card-details { display: none; margin-top: 0.6rem; padding-top: 0.6rem; border-top: 1px solid var(--border); font-size: 0.78rem; color: var(--muted); line-height: 1.7; }
+  .card.open .card-details { display: block; }
+  .card-details a { color: var(--accent); text-decoration: none; font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem; }
+  .card-details strong { color: var(--text); font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1px; }
+  .detail-row { margin-top: 0.35rem; }
+
+  .status-row { display: flex; gap: 0.35rem; margin-top: 0.6rem; flex-wrap: wrap; }
+  .sb { font-family: 'IBM Plex Mono', monospace; font-size: 0.58rem; letter-spacing: 1px; text-transform: uppercase; padding: 0.18rem 0.45rem; border: 1px solid var(--border); background: transparent; color: var(--muted); cursor: pointer; border-radius: 2px; transition: all 0.12s; }
+  .sb.active-k { border-color: #0066ff; color: #0066ff; background: rgba(0,102,255,0.1); }
+  .sb.active-a { border-color: #cc00ff; color: #cc00ff; background: rgba(204,0,255,0.1); }
+  .sb.active-x { border-color: var(--waescherei); color: var(--waescherei); background: rgba(0,204,136,0.1); }
+
+  .notes-area { width: 100%; background: var(--bg); border: 1px solid var(--border); color: var(--text); font-family: 'IBM Plex Sans', sans-serif; font-size: 0.76rem; padding: 0.4rem 0.55rem; border-radius: 2px; margin-top: 0.45rem; resize: none; height: 52px; outline: none; }
+  .notes-area:focus { border-color: var(--accent); }
+  .notes-area::placeholder { color: var(--muted); }
+  .save-btn { font-family: 'IBM Plex Mono', monospace; font-size: 0.6rem; letter-spacing: 1px; text-transform: uppercase; padding: 0.25rem 0.6rem; border: 1px solid var(--accent); background: transparent; color: var(--accent); cursor: pointer; border-radius: 2px; margin-top: 0.25rem; }
+  .save-btn:hover { background: var(--accent); color: white; }
+  .who-line { font-family: 'IBM Plex Mono', monospace; font-size: 0.58rem; color: var(--muted); margin-top: 0.25rem; }
+  .email-btn { font-family: 'IBM Plex Mono', monospace; font-size: 0.6rem; letter-spacing: 1px; text-transform: uppercase; padding: 0.3rem 0.7rem; border: none; background: #1a3a1a; color: #00cc88; cursor: pointer; border-radius: 2px; margin-top: 0.5rem; width: 100%; text-align: left; }
+  .email-btn:hover { background: #00cc88; color: #0a0c0f; }
+
+  footer { padding: 1.2rem; text-align: center; font-family: 'IBM Plex Mono', monospace; font-size: 0.6rem; color: var(--muted); border-top: 1px solid var(--border); letter-spacing: 1px; }
+  footer span { color: var(--accent); }
+
+  .toast { position: fixed; bottom: 1.2rem; left: 50%; transform: translateX(-50%); background: var(--surface); border: 1px solid var(--accent2); color: var(--accent2); font-family: 'IBM Plex Mono', monospace; font-size: 0.7rem; padding: 0.45rem 1rem; border-radius: 2px; opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 999; white-space: nowrap; }
+  .toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<div id="setup-screen">
+  <div class="setup-logo">STRIKER <span>SALES</span></div>
+  <div class="setup-desc">Zdieľaná kontaktná lista pre tím.<br>Zmeny sú viditeľné pre všetkých v reálnom čase.</div>
+  <div class="setup-card">
+    <h3>Kto si?</h3>
+    <button class="setup-btn" onclick="startAs('Adolf')">👤 Adolf</button>
+    <button class="setup-btn sec" onclick="startAs('Kollege')">👤 Kollege</button>
+    <div class="setup-divider">alebo vlastné meno</div>
+    <input class="setup-input" id="cname" placeholder="Meno..." maxlength="20">
+    <button class="setup-btn sec" onclick="startCustom()">Ďalej →</button>
+  </div>
+</div>
+
+<div id="app">
+  <header>
+    <div>
+      <div class="logo">STRIKER <span>SALES</span></div>
+      <div class="subtitle">Prihlásený: <span id="ulabel" style="color:var(--accent2)"></span></div>
+    </div>
+    <div class="sync-area">
+      <span class="sync-dot" id="sdot"></span><span id="stxt" style="color:var(--muted)">...</span>
+      <br><span id="stime" style="color:var(--muted);font-size:0.55rem"></span>
+      <br><button class="logout-btn" onclick="logout()">Odhlásiť</button>
+    </div>
+  </header>
+  <div class="controls">
+    <input class="search-input" id="search" type="text" placeholder="Hľadať...">
+    <button class="filter-btn active" data-f="all">Všetky</button>
+    <button class="filter-btn fh" data-f="hotel">Hotely</button>
+    <button class="filter-btn fw" data-f="waescherei">Práčovne</button>
+  </div>
+  <div class="list" id="list"></div>
+  <footer>STRIKER · <span>adolf.staubert6@gmail.com</span> · +49 171 4758126</footer>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- Firebase -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, doc, setDoc, onSnapshot, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyChBW8fhC1eEVPudYZjKtoPL1bP334B7nI",
+  authDomain: "striker-sales.firebaseapp.com",
+  projectId: "striker-sales",
+  storageBucket: "striker-sales.firebasestorage.app",
+  messagingSenderId: "582537757434",
+  appId: "1:582537757434:web:2936d4de921a14eafcff43",
+  measurementId: "G-WD7GGQC31S"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+const contacts = [
+  {t:"hotel",n:"Hotel Monopol Mannheim",c:"Mannheim",a:"Bahnhofplatz 2, 68161 Mannheim",p:"+49 621 10030",e:"info@hotel-monopol-mannheim.de",w:"hotel-monopol-mannheim.de"},
+  {t:"hotel",n:"NH Mannheim",c:"Mannheim",a:"Friedrichsplatz 2, 68165 Mannheim",p:"+49 621 125060",e:"nhmannheim@nh-hotels.com",w:"nh-hotels.com"},
+  {t:"hotel",n:"Maritim Parkhotel Mannheim",c:"Mannheim",a:"Friedrichsplatz 2, 68165 Mannheim",p:"+49 621 15880",e:"info.man@maritim.de",w:"maritim.de"},
+  {t:"hotel",n:"Dorint Kongresshotel Mannheim",c:"Mannheim",a:"Friedrichsring 6, 68161 Mannheim",p:"+49 621 12510",e:"info.mannheim@dorint.com",w:"dorint.com"},
+  {t:"hotel",n:"Hotel Europäischer Hof Heidelberg",c:"Heidelberg",a:"Friedrich-Ebert-Anlage 1, 69117 Heidelberg",p:"+49 6221 5150",e:"info@europaeischerhof.com",w:"europaeischerhof.com"},
+  {t:"hotel",n:"Crowne Plaza Heidelberg",c:"Heidelberg",a:"Kurfürstenanlage 1, 69115 Heidelberg",p:"+49 6221 9170",e:"reservations@cpheidelberg.de",w:"ihg.com"},
+  {t:"hotel",n:"Hotel Zur Pfalz Speyer",c:"Speyer",a:"Maximilianstraße 19, 67346 Speyer",p:"+49 6232 7340",e:"info@hotel-zurpfalz.de",w:"hotel-zurpfalz.de"},
+  {t:"hotel",n:"Lindner Hotel & Spa Binshof",c:"Speyer",a:"Binshof 1, 67346 Speyer",p:"+49 6232 6470",e:"info.binshof@lindner.de",w:"lindner.de"},
+  {t:"hotel",n:"Best Western Plus Hotel Worms",c:"Worms",a:"Wilhelm-Leuschner-Str. 5, 67547 Worms",p:"+49 6241 9070",e:"info@hotelworms.de",w:"bestwesternworms.de"},
+  {t:"hotel",n:"Hotel Nibelungen Worms",c:"Worms",a:"Martinsgate 16, 67547 Worms",p:"+49 6241 6977",e:"info@hotel-nibelungen.de",w:"hotel-nibelungen.de"},
+  {t:"hotel",n:"Leonardo Hotel Ludwigshafen",c:"Ludwigshafen",a:"Passerelle, 67059 Ludwigshafen",p:"+49 621 5920",e:"info.ludwigshafen@leonardo-hotels.com",w:"leonardo-hotels.com"},
+  {t:"hotel",n:"Hotel Excelsior Ludwigshafen",c:"Ludwigshafen",a:"Lorientallee 3, 67059 Ludwigshafen",p:"+49 621 59570",e:"info@excelsior-lu.de",w:"excelsior-lu.de"},
+  {t:"hotel",n:"Mercure Hotel Bensheim",c:"Bensheim",a:"Wormser Straße 56, 64625 Bensheim",p:"+49 6251 9290",e:"h3290@accor.com",w:"mercure.com"},
+  {t:"hotel",n:"Hotel Backmulde Schwetzingen",c:"Schwetzingen",a:"Schlossstr. 6, 68723 Schwetzingen",p:"+49 6202 4050",e:"info@hotel-backmulde.de",w:"hotel-backmulde.de"},
+  {t:"hotel",n:"Ringhotel Darmstadt",c:"Darmstadt",a:"Frankensteiner Str. 162, 64367 Mühltal",p:"+49 6151 9500",e:"info@ringhotel-darmstadt.de",w:"ringhotel-darmstadt.de"},
+  {t:"hotel",n:"Best Western Hotel Darmstadt",c:"Darmstadt",a:"Grafenstraße 31, 64283 Darmstadt",p:"+49 6151 9940",e:"info@bestwestern-darmstadt.de",w:"bestwestern-darmstadt.de"},
+  {t:"hotel",n:"Hotel Am Schloss Weinheim",c:"Weinheim",a:"Schlossstr. 1, 69469 Weinheim",p:"+49 6201 1750",e:"info@hotel-am-schloss.de",w:"hotel-am-schloss.de"},
+  {t:"hotel",n:"Parkhotel Wiesloch",c:"Wiesloch",a:"Schwetzinger Str. 99, 69168 Wiesloch",p:"+49 6222 5720",e:"info@parkhotel-wiesloch.de",w:"parkhotel-wiesloch.de"},
+  {t:"hotel",n:"Hotel Zum Goldenen Ochsen",c:"Eberbach",a:"Hauptstraße 66, 69412 Eberbach",p:"+49 6271 92020",e:"info@goldener-ochsen.de",w:"goldener-ochsen.de"},
+  {t:"hotel",n:"Hotel Krone Heppenheim",c:"Heppenheim",a:"Marktplatz 2, 64646 Heppenheim",p:"+49 6252 92930",e:"info@hotel-krone-heppenheim.de",w:"hotel-krone-heppenheim.de"},
+  {t:"waescherei",n:"Mewa Textil-Service",c:"Waghäusel",a:"Speyerer Str. 2, 68753 Waghäusel",p:"+49 7254 9080",e:"info@mewa.de",w:"mewa.de"},
+  {t:"waescherei",n:"Bardusch GmbH",c:"Ettlingen",a:"Im Winkel 1, 76275 Ettlingen",p:"+49 7243 7040",e:"info@bardusch.de",w:"bardusch.de"},
+  {t:"waescherei",n:"Wäscherei Lühmann",c:"Mannheim",a:"Industriestraße 5, 68169 Mannheim",p:"+49 621 3105050",e:"info@waescherei-luehmann.de",w:"waescherei-luehmann.de"},
+  {t:"waescherei",n:"Textilpflege Röser",c:"Heidelberg",a:"Burgweg 13, 69121 Heidelberg",p:"+49 6221 481230",e:"info@roeser-textilpflege.de",w:"roeser-textilpflege.de"},
+  {t:"waescherei",n:"Wäscherei Knapp",c:"Speyer",a:"Industriestr. 21, 67346 Speyer",p:"+49 6232 31580",e:"info@waescherei-knapp.de",w:"waescherei-knapp.de"},
+  {t:"waescherei",n:"Alsco Berufskleidung",c:"Worms",a:"Valckenburger Str. 1, 67547 Worms",p:"+49 6241 9460",e:"worms@alsco.de",w:"alsco.de"},
+  {t:"waescherei",n:"Reinigungswerk Bensheim",c:"Bensheim",a:"Berliner Ring 89, 64625 Bensheim",p:"+49 6251 72890",e:"info@reinigungswerk-bensheim.de",w:"reinigungswerk-bensheim.de"},
+  {t:"waescherei",n:"Permo Textilservice",c:"Viernheim",a:"Otto-Hahn-Str. 1, 68519 Viernheim",p:"+49 6204 96060",e:"info@permo.de",w:"permo.de"},
+  {t:"waescherei",n:"Wäscherei Schüssler",c:"Lampertheim",a:"Industriestr. 8, 68623 Lampertheim",p:"+49 6206 5950",e:"info@waescherei-schuessler.de",w:"waescherei-schuessler.de"},
+  {t:"waescherei",n:"Textilservice Woelk",c:"Ludwigshafen",a:"Brunckstraße 47, 67063 Ludwigshafen",p:"+49 621 6903030",e:"info@textilservice-woelk.de",w:"textilservice-woelk.de"},
+  {t:"waescherei",n:"CWS-boco",c:"Weinheim",a:"Bergstraße 92, 69469 Weinheim",p:"+49 6201 18900",e:"weinheim@cws-boco.de",w:"cws-boco.de"},
+  {t:"waescherei",n:"Lindström GmbH",c:"Heidelberg",a:"Im Breitspiel 7, 69126 Heidelberg",p:"+49 6221 3190",e:"heidelberg@lindstromgroup.com",w:"lindstromgroup.com"},
+  {t:"waescherei",n:"Wäscherei Stauber",c:"Schwetzingen",a:"Zeyherstr. 15, 68723 Schwetzingen",p:"+49 6202 18760",e:"info@waescherei-stauber.de",w:"waescherei-stauber.de"},
+  {t:"waescherei",n:"Textilreinigung Lenz",c:"Wiesloch",a:"Gutenbergstraße 3, 69168 Wiesloch",p:"+49 6222 31890",e:"info@lenz-textilreinigung.de",w:"lenz-textilreinigung.de"},
+  {t:"waescherei",n:"Wäscherei Götz",c:"Heppenheim",a:"Lorscher Str. 14, 64646 Heppenheim",p:"+49 6252 72040",e:"info@waescherei-goetz.de",w:"waescherei-goetz.de"},
+  {t:"waescherei",n:"Pik AS Textilservice",c:"Darmstadt",a:"Robert-Bosch-Str. 11, 64293 Darmstadt",p:"+49 6151 87890",e:"darmstadt@pikas.de",w:"pikas.de"},
+  {t:"waescherei",n:"Wäscherei Hoffmann",c:"Bürstadt",a:"Industriering 6, 68642 Bürstadt",p:"+49 6206 70490",e:"info@waesche-hoffmann.de",w:"waesche-hoffmann.de"},
+  {t:"waescherei",n:"Textilservice Kern",c:"Biblis",a:"Industriestraße 12, 68647 Biblis",p:"+49 6245 18950",e:"info@textilservice-kern.de",w:"textilservice-kern.de"},
+  {t:"waescherei",n:"Wäscherei Roth",c:"Lorsch",a:"Nibelungenstraße 55, 64653 Lorsch",p:"+49 6251 580780",e:"info@waescherei-roth.de",w:"waescherei-roth.de"},
+  {t:"waescherei",n:"Cleanservice Müller",c:"Frankenthal",a:"Dürkheimer Str. 40, 67227 Frankenthal",p:"+49 6233 35670",e:"info@cleanservice-mueller.de",w:"cleanservice-mueller.de"},
+];
+
+let user = '', sharedData = {}, filter = 'all', search = '';
+
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+function setSS(type, txt) {
+  const d = document.getElementById('sdot'), t = document.getElementById('stxt');
+  if (!d) return;
+  d.className = 'sync-dot' + (type==='s'?' pulse':type==='e'?' err':'');
+  t.textContent = txt;
+  t.style.color = type==='e'?'#ff3333':type==='s'?'var(--accent2)':'var(--waescherei)';
+}
+
+// Firestore realtime listener
+function startSync() {
+  setSS('s', 'Verbinde...');
+  const docRef = doc(db, 'striker', 'crm');
+  onSnapshot(docRef, (snap) => {
+    if (snap.exists()) {
+      sharedData = snap.data() || {};
+    } else {
+      sharedData = {};
+    }
+    setSS('ok', 'Live ●');
+    document.getElementById('stime').textContent = new Date().toLocaleTimeString('de-DE', {hour:'2-digit',minute:'2-digit'});
+    render();
+  }, (err) => {
+    setSS('e', 'Fehler');
+    console.error(err);
+  });
+}
+
+async function saveToFirebase(id, data) {
+  setSS('s', 'Speichern...');
+  try {
+    const docRef = doc(db, 'striker', 'crm');
+    await setDoc(docRef, { [id]: data }, { merge: true });
+  } catch(e) {
+    setSS('e', 'Fehler');
+    toast('⚠ Speichern fehlgeschlagen');
+  }
+}
+
+window.startAs = function(name) {
+  user = name;
+  localStorage.setItem('striker-user', name);
+  document.getElementById('setup-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  document.getElementById('ulabel').textContent = name;
+  startSync();
+};
+
+window.startCustom = function() {
+  const n = document.getElementById('cname').value.trim();
+  if (n) window.startAs(n);
+};
+
+window.logout = function() {
+  localStorage.removeItem('striker-user');
+  document.getElementById('setup-screen').style.display = 'flex';
+  document.getElementById('app').style.display = 'none';
+};
+
+async function setStatus(id, s) {
+  const cur = sharedData[id]?.status || '';
+  const newStatus = cur === s ? '' : s;
+  const data = { ...sharedData[id], status: newStatus, who: user, ts: Date.now() };
+  await saveToFirebase(id, data);
+}
+
+async function setNotes(id, notes) {
+  const data = { ...sharedData[id], notes, noteWho: user };
+  await saveToFirebase(id, data);
+  toast('✓ Notiz gespeichert');
+}
+
+function render() {
+  const list = document.getElementById('list');
+  if (!list) return;
+  let arr = contacts.filter((c) => {
+    if (filter !== 'all' && c.t !== filter) return false;
+    if (search) { const q = search.toLowerCase(); return c.n.toLowerCase().includes(q) || c.c.toLowerCase().includes(q); }
+    return true;
+  });
+  const hotels = arr.filter(c => c.t === 'hotel');
+  const waesch = arr.filter(c => c.t === 'waescherei');
+  let html = '';
+  if (hotels.length) { html += `<div class="sec-label">Hotels (${hotels.length})</div>`; hotels.forEach(c => html += cardHtml(c)); }
+  if (waesch.length) { html += `<div class="sec-label">Wäschereien (${waesch.length})</div>`; waesch.forEach(c => html += cardHtml(c)); }
+  if (!html) html = '<div style="text-align:center;padding:2.5rem;color:var(--muted);font-size:0.8rem">Keine Ergebnisse</div>';
+  list.innerHTML = html;
+
+  list.querySelectorAll('.card-left').forEach(el => el.addEventListener('click', () => el.closest('.card').classList.toggle('open')));
+  list.querySelectorAll('.sb').forEach(btn => btn.addEventListener('click', e => { e.stopPropagation(); setStatus(btn.dataset.id, btn.dataset.s); }));
+  list.querySelectorAll('.save-btn').forEach(btn => btn.addEventListener('click', e => {
+    e.stopPropagation();
+    const ta = list.querySelector(`.notes-area[data-id="${btn.dataset.id}"]`);
+    setNotes(btn.dataset.id, ta.value);
+  }));
+  list.querySelectorAll('.notes-area').forEach(ta => ta.addEventListener('click', e => e.stopPropagation()));
+}
+
+function getEmailTemplate(c) {
+  if (c.t === 'hotel') {
+    return {
+      subject: `Reduzierung Ihrer Heizkosten – STRIKER Wärmetechnologie`,
+      body: `Sehr geehrte Damen und Herren,
+
+mein Name ist Adolf Staubert, ich bin Entwickler einer patentierten industriellen Heiztechnologie namens STRIKER.
+
+Unser System erzeugt bei einem elektrischen Verbrauch von nur 45 kW eine Wärmeleistung von 120–160 kW – das entspricht einer Einsparung von bis zu 70% gegenüber herkömmlichen Heizsystemen.
+
+Für Hotels mit hohem Warmwasserbedarf (Küche, Wellness, Zimmer) bietet STRIKER ein erhebliches Einsparpotenzial.
+
+Gerne würde ich Ihnen die Technologie kurz vorstellen und eine kostenlose Heizkosten-Analyse für Ihr Haus durchführen.
+
+Preis: ab 8.000 EUR, Lieferzeit 6–8 Wochen.
+
+Darf ich mich kurz telefonisch bei Ihnen melden?
+
+Mit freundlichen Grüßen
+Adolf Staubert
+STRIKER Wärmetechnologie
+Tel: +49 171 4758126
+E-Mail: adolf.staubert6@gmail.com`
+    };
+  } else {
+    return {
+      subject: `Senkung Ihrer Heizkosten in der Wäscherei – STRIKER Technologie`,
+      body: `Sehr geehrte Damen und Herren,
+
+mein Name ist Adolf Staubert, ich bin Entwickler einer patentierten industriellen Heiztechnologie namens STRIKER.
+
+Industriewäschereien gehören zu den energieintensivsten Betrieben – unser System kann Ihren Wärmeenergiebedarf drastisch senken:
+
+Bei 45 kW elektrischer Leistung erzeugt STRIKER 120–160 kW Wärme. Das bedeutet bis zu 70% weniger Heizkosten.
+
+Gerne führe ich für Sie eine kostenlose Analyse Ihrer aktuellen Heizkosten durch und zeige das konkrete Einsparpotenzial.
+
+Preis: ab 8.000 EUR, Lieferzeit 6–8 Wochen.
+
+Darf ich Sie kurz telefonisch kontaktieren?
+
+Mit freundlichen Grüßen
+Adolf Staubert
+STRIKER Wärmetechnologie
+Tel: +49 171 4758126
+E-Mail: adolf.staubert6@gmail.com`
+    };
+  }
+}
+
+async function sendEmail(id) {
+  const c = contacts[parseInt(id)];
+  const tpl = getEmailTemplate(c);
+  
+  // Show sending status
+  const btn = document.querySelector(`.email-btn[data-id="${id}"]`);
+  if (btn) {
+    btn.textContent = '⏳ Odosiela sa...';
+    btn.disabled = true;
+  }
+
+  try {
+    const response = await fetch('/.netlify/functions/send-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        to: c.e,
+        subject: tpl.subject,
+        text: tpl.body,
+        companyType: c.t
+      })
+    });
+
+    const result = await response.json();
+
+    if (response.ok && result.success) {
+      toast('✓ Email odoslaný na ' + c.e);
+      // Auto-set status to kontaktovaný
+      await setStatus(id, 'k');
+      if (btn) {
+        btn.textContent = '✓ Email odoslaný';
+        btn.style.background = 'rgba(0,204,136,0.2)';
+        btn.style.color = 'var(--waescherei)';
+      }
+    } else {
+      toast('⚠ Chyba: ' + (result.error || 'Neznáma chyba'));
+      if (btn) {
+        btn.textContent = '📧 Email odoslať (' + (c.t === 'hotel' ? 'Hotel' : 'Práčovňa') + ')';
+        btn.disabled = false;
+      }
+    }
+  } catch (err) {
+    toast('⚠ Spojenie zlyhalo');
+    if (btn) {
+      btn.textContent = '📧 Email odoslať (' + (c.t === 'hotel' ? 'Hotel' : 'Práčovňa') + ')';
+      btn.disabled = false;
+    }
+  }
+}
+
+function cardHtml(c) {
+  const id = contacts.indexOf(c).toString();
+  const d = sharedData[id] || {};
+  const st = d.status || '';
+  const notes = d.notes || '';
+  const who = d.who || '';
+  const sBadge = st ? `<span class="s-badge s-${st}">${st==='k'?'Kontaktiert':st==='a'?'Angebot':'Abgeschl.'}</span>` : '';
+  const emailLabel = c.t === 'hotel' ? '📧 Email odoslať (Hotel)' : '📧 Email odoslať (Práčovňa)';
+  return `<div class="card ${c.t}">
+    <div class="card-left">
+      <div class="card-name">${c.n}${sBadge}</div>
+      <div class="card-city">${c.c}</div>
+      <div class="card-details">
+        <div class="detail-row"><strong>Adresa</strong><br>${c.a}</div>
+        <div class="detail-row"><strong>Tel</strong><br><a href="tel:${c.p}">${c.p}</a></div>
+        <div class="detail-row"><strong>E-Mail</strong><br><a href="mailto:${c.e}">${c.e}</a></div>
+        <div class="detail-row"><strong>Web</strong><br><a href="https://${c.w}" target="_blank">${c.w}</a></div>
+        <button class="email-btn" data-id="${id}" onclick="sendEmail('${id}'); event.stopPropagation();">${emailLabel}</button>
+        <div class="status-row">
+          <button class="sb ${st==='k'?'active-k':''}" data-id="${id}" data-s="k">Kontaktovaný</button>
+          <button class="sb ${st==='a'?'active-a':''}" data-id="${id}" data-s="a">Ponuka</button>
+          <button class="sb ${st==='x'?'active-x':''}" data-id="${id}" data-s="x">Uzavreté</button>
+        </div>
+        ${who ? `<div class="who-line">Status: ${who}</div>` : ''}
+        <textarea class="notes-area" data-id="${id}" placeholder="Poznámky...">${notes}</textarea>
+        <button class="save-btn" data-id="${id}">Uložiť poznámku</button>
+      </div>
+    </div>
+    <span class="badge ${c.t}">${c.t==='hotel'?'Hotel':'Práč.'}</span>
+  </div>`;
+}
+
+document.getElementById('search').addEventListener('input', e => { search = e.target.value; render(); });
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active'); filter = btn.dataset.f; render();
+  });
+});
+document.getElementById('cname').addEventListener('keydown', e => { if (e.key==='Enter') window.startCustom(); });
+
+const su = localStorage.getItem('striker-user');
+if (su) window.startAs(su);
+</script>
+</body>
+</html>
