@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>STRIKER Sales</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0c0f;--surface:#111418;--border:#1e2530;--accent:#ff5c00;--accent2:#ffaa00;--text:#e8eaed;--muted:#6b7280;--hotel:#0066ff;--waescherei:#00cc88}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:'IBM Plex Sans',sans-serif;min-height:100vh}
+#setup{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:2rem;text-align:center}
+.logo{font-family:'Bebas Neue',sans-serif;font-size:3rem;letter-spacing:4px;color:var(--accent)}
+.logo span{color:var(--accent2)}
+.desc{color:var(--muted);font-size:.85rem;margin:1rem 0 2rem;line-height:1.6;max-width:320px}
+.card-setup{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:1.5rem;width:100%;max-width:340px}
+.card-setup h3{font-family:'IBM Plex Mono',monospace;font-size:.72rem;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:1rem}
+.sbtn{width:100%;background:var(--accent);border:none;color:white;font-family:'IBM Plex Mono',monospace;font-size:.8rem;letter-spacing:2px;text-transform:uppercase;padding:.7rem;cursor:pointer;border-radius:2px;margin-bottom:.5rem}
+.sbtn.sec{background:transparent;border:1px solid var(--border);color:var(--muted)}
+.sdiv{color:var(--muted);font-size:.7rem;margin:.75rem 0;font-family:'IBM Plex Mono',monospace}
+.sinp{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:'IBM Plex Mono',monospace;font-size:.85rem;padding:.6rem .8rem;border-radius:2px;outline:none;margin-bottom:.75rem}
+#app{display:none}
+header{padding:1.2rem;border-bottom:1px solid var(--border);background:#0a0c0f;display:flex;justify-content:space-between;align-items:flex-start}
+.hlogo{font-family:'Bebas Neue',sans-serif;font-size:2rem;letter-spacing:3px;color:var(--accent);line-height:1}
+.hlogo span{color:var(--accent2)}
+.hsub{font-family:'IBM Plex Mono',monospace;font-size:.6rem;color:var(--muted);margin-top:.15rem}
+.sync{text-align:right;font-family:'IBM Plex Mono',monospace;font-size:.62rem}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--waescherei);display:inline-block;margin-right:3px;vertical-align:middle}
+.dot.pulse{animation:pulse 1s infinite;background:var(--accent2)}
+.dot.err{background:#ff3333}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.2}}
+.lbtn{background:transparent;border:1px solid var(--border);color:var(--muted);font-family:'IBM Plex Mono',monospace;font-size:.58rem;padding:.2rem .4rem;cursor:pointer;border-radius:2px;margin-top:.4rem}
+.controls{padding:.7rem 1.2rem;display:flex;gap:.5rem;flex-wrap:wrap;border-bottom:1px solid var(--border);background:var(--surface);position:sticky;top:0;z-index:10}
+.fbtn{font-family:'IBM Plex Mono',monospace;font-size:.68rem;letter-spacing:1px;padding:.3rem .7rem;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;text-transform:uppercase;transition:all .15s;border-radius:2px}
+.fbtn.active{border-color:var(--accent);color:var(--accent)}
+.fbtn.fh.active{border-color:var(--hotel);color:var(--hotel)}
+.fbtn.fw.active{border-color:var(--waescherei);color:var(--waescherei)}
+.sinput{flex:1;min-width:130px;background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:'IBM Plex Mono',monospace;font-size:.72rem;padding:.3rem .6rem;border-radius:2px;outline:none}
+.sinput::placeholder{color:var(--muted)}
+.list{padding:.6rem 1.2rem}
+.slabel{font-family:'IBM Plex Mono',monospace;font-size:.6rem;letter-spacing:3px;text-transform:uppercase;color:var(--muted);padding:.7rem 0 .35rem}
+.contact{background:var(--surface);border:1px solid var(--border);border-left:3px solid transparent;padding:.8rem .9rem;margin-bottom:.35rem;border-radius:2px;display:flex;justify-content:space-between;align-items:flex-start;gap:.7rem}
+.contact.hotel{border-left-color:var(--hotel)}
+.contact.waescherei{border-left-color:var(--waescherei)}
+.contact.open{background:#161b22}
+.cleft{flex:1;cursor:pointer}
+.cname{font-weight:600;font-size:.88rem;margin-bottom:.12rem}
+.ccity{font-family:'IBM Plex Mono',monospace;font-size:.65rem;color:var(--muted)}
+.cbadge{font-family:'IBM Plex Mono',monospace;font-size:.58rem;letter-spacing:1px;text-transform:uppercase;padding:.12rem .4rem;border-radius:2px;white-space:nowrap}
+.cbadge.hotel{background:rgba(0,102,255,.15);color:var(--hotel)}
+.cbadge.waescherei{background:rgba(0,204,136,.15);color:var(--waescherei)}
+.sbadge{font-family:'IBM Plex Mono',monospace;font-size:.55rem;letter-spacing:1px;text-transform:uppercase;padding:.1rem .35rem;border-radius:2px;margin-left:.3rem;vertical-align:middle}
+.sk{background:rgba(0,102,255,.15);color:#0066ff}
+.sa{background:rgba(204,0,255,.15);color:#cc00ff}
+.sx{background:rgba(0,204,136,.15);color:var(--waescherei)}
+.cdetails{display:none;margin-top:.6rem;padding-top:.6rem;border-top:1px solid var(--border);font-size:.78rem;color:var(--muted);line-height:1.7}
+.contact.open .cdetails{display:block}
+.cdetails a{color:var(--accent);text-decoration:none;font-family:'IBM Plex Mono',monospace;font-size:.72rem}
+.cdetails strong{color:var(--text);font-size:.65rem;text-transform:uppercase;letter-spacing:1px}
+.drow{margin-top:.35rem}
+.srow{display:flex;gap:.35rem;margin-top:.6rem;flex-wrap:wrap}
+.stbtn{font-family:'IBM Plex Mono',monospace;font-size:.58rem;letter-spacing:1px;text-transform:uppercase;padding:.18rem .45rem;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;border-radius:2px}
+.stbtn.ak{border-color:#0066ff;color:#0066ff;background:rgba(0,102,255,.1)}
+.stbtn.aa{border-color:#cc00ff;color:#cc00ff;background:rgba(204,0,255,.1)}
+.stbtn.ax{border-color:var(--waescherei);color:var(--waescherei);background:rgba(0,204,136,.1)}
+.narea{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:'IBM Plex Sans',sans-serif;font-size:.76rem;padding:.4rem .55rem;border-radius:2px;margin-top:.45rem;resize:none;height:52px;outline:none}
+.nbtn{font-family:'IBM Plex Mono',monospace;font-size:.6rem;letter-spacing:1px;text-transform:uppercase;padding:.25rem .6rem;border:1px solid var(--accent);background:transparent;color:var(--accent);cursor:pointer;border-radius:2px;margin-top:.25rem}
+.wholine{font-family:'IBM Plex Mono',monospace;font-size:.58rem;color:var(--muted);margin-top:.25rem}
+.ebtn{font-family:'IBM Plex Mono',monospace;font-size:.6rem;letter-spacing:1px;text-transform:uppercase;padding:.3rem .7rem;border:none;background:#1a3a1a;color:#00cc88;cursor:pointer;border-radius:2px;margin-top:.5rem;width:100%;text-align:left}
+.ebtn:hover{background:#00cc88;color:#0a0c0f}
+footer{padding:1.2rem;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:.6rem;color:var(--muted);border-top:1px solid var(--border)}
+footer span{color:var(--accent)}
+.toast{position:fixed;bottom:1.2rem;left:50%;transform:translateX(-50%);background:var(--surface);border:1px solid var(--accent2);color:var(--accent2);font-family:'IBM Plex Mono',monospace;font-size:.7rem;padding:.45rem 1rem;border-radius:2px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:999;white-space:nowrap}
+.toast.show{opacity:1}
+</style>
+</head>
+<body>
+
+<div id="setup">
+  <div class="logo">STRIKER <span>SALES</span></div>
+  <div class="desc">Zdieľaná kontaktná lista pre tím.<br>Zmeny sú viditeľné pre všetkých v reálnom čase.</div>
+  <div class="card-setup">
+    <h3>Kto si?</h3>
+    <button class="sbtn" onclick="startAs('Adolf')">👤 Adolf</button>
+    <button class="sbtn sec" onclick="startAs('Kollege')">👤 Kollege</button>
+    <div class="sdiv">alebo vlastné meno</div>
+    <input class="sinp" id="cname" placeholder="Meno..." maxlength="20">
+    <button class="sbtn sec" onclick="startCustom()">Ďalej →</button>
+  </div>
+</div>
+
+<div id="app">
+  <header>
+    <div>
+      <div class="hlogo">STRIKER <span>SALES</span></div>
+      <div class="hsub">Prihlásený: <span id="ulabel" style="color:var(--accent2)"></span></div>
+    </div>
+    <div class="sync">
+      <span class="dot" id="sdot"></span><span id="stxt" style="color:var(--muted)">...</span>
+      <br><span id="stime" style="color:var(--muted);font-size:.55rem"></span>
+      <br><button class="lbtn" onclick="logout()">Odhlásiť</button>
+    </div>
+  </header>
+  <div class="controls">
+    <input class="sinput" id="search" type="text" placeholder="Hľadať...">
+    <button class="fbtn active" data-f="all">Všetky</button>
+    <button class="fbtn fh" data-f="hotel">Hotely</button>
+    <button class="fbtn fw" data-f="waescherei">Práčovne</button>
+  </div>
+  <div class="list" id="list"></div>
+  <footer>STRIKER · <span>info@striker-energy.de</span> · +49 171 4758126</footer>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script>
+var fbApp = firebase.initializeApp({
+  apiKey:"AIzaSyChBW8fhC1eEVPudYZjKtoPL1bP334B7nI",
+  authDomain:"striker-sales.firebaseapp.com",
+  projectId:"striker-sales",
+  storageBucket:"striker-sales.firebasestorage.app",
+  messagingSenderId:"582537757434",
+  appId:"1:582537757434:web:2936d4de921a14eafcff43"
+});
+var db = firebase.firestore();
+
+var contacts = [
+  {t:"hotel",n:"⚠ TEST - Adolf Staubert",c:"Biblis",a:"Heinrich-Hertz-Straße 4, 68647 Biblis",p:"+49 171 4758126",e:"info@striker-energy.de",w:"striker-energy.de"},
+  {t:"hotel",n:"Hotel Monopol Mannheim",c:"Mannheim",a:"Bahnhofplatz 2, 68161 Mannheim",p:"+49 621 10030",e:"info@hotel-monopol-mannheim.de",w:"hotel-monopol-mannheim.de"},
+  {t:"hotel",n:"NH Mannheim",c:"Mannheim",a:"Friedrichsplatz 2, 68165 Mannheim",p:"+49 621 125060",e:"nhmannheim@nh-hotels.com",w:"nh-hotels.com"},
+  {t:"hotel",n:"Maritim Parkhotel Mannheim",c:"Mannheim",a:"Friedrichsplatz 2, 68165 Mannheim",p:"+49 621 15880",e:"info.man@maritim.de",w:"maritim.de"},
+  {t:"hotel",n:"Dorint Kongresshotel Mannheim",c:"Mannheim",a:"Friedrichsring 6, 68161 Mannheim",p:"+49 621 12510",e:"info.mannheim@dorint.com",w:"dorint.com"},
+  {t:"hotel",n:"Hotel Europäischer Hof Heidelberg",c:"Heidelberg",a:"Friedrich-Ebert-Anlage 1, 69117 Heidelberg",p:"+49 6221 5150",e:"info@europaeischerhof.com",w:"europaeischerhof.com"},
+  {t:"hotel",n:"Crowne Plaza Heidelberg",c:"Heidelberg",a:"Kurfürstenanlage 1, 69115 Heidelberg",p:"+49 6221 9170",e:"reservations@cpheidelberg.de",w:"ihg.com"},
+  {t:"hotel",n:"Hotel Zur Pfalz Speyer",c:"Speyer",a:"Maximilianstraße 19, 67346 Speyer",p:"+49 6232 7340",e:"info@hotel-zurpfalz.de",w:"hotel-zurpfalz.de"},
+  {t:"hotel",n:"Lindner Hotel & Spa Binshof",c:"Speyer",a:"Binshof 1, 67346 Speyer",p:"+49 6232 6470",e:"info.binshof@lindner.de",w:"lindner.de"},
+  {t:"hotel",n:"Best Western Plus Hotel Worms",c:"Worms",a:"Wilhelm-Leuschner-Str. 5, 67547 Worms",p:"+49 6241 9070",e:"info@hotelworms.de",w:"bestwesternworms.de"},
+  {t:"hotel",n:"Hotel Nibelungen Worms",c:"Worms",a:"Martinsgate 16, 67547 Worms",p:"+49 6241 6977",e:"info@hotel-nibelungen.de",w:"hotel-nibelungen.de"},
+  {t:"hotel",n:"Leonardo Hotel Ludwigshafen",c:"Ludwigshafen",a:"Passerelle, 67059 Ludwigshafen",p:"+49 621 5920",e:"info.ludwigshafen@leonardo-hotels.com",w:"leonardo-hotels.com"},
+  {t:"hotel",n:"Hotel Excelsior Ludwigshafen",c:"Ludwigshafen",a:"Lorientallee 3, 67059 Ludwigshafen",p:"+49 621 59570",e:"info@excelsior-lu.de",w:"excelsior-lu.de"},
+  {t:"hotel",n:"Mercure Hotel Bensheim",c:"Bensheim",a:"Wormser Straße 56, 64625 Bensheim",p:"+49 6251 9290",e:"h3290@accor.com",w:"mercure.com"},
+  {t:"hotel",n:"Hotel Backmulde Schwetzingen",c:"Schwetzingen",a:"Schlossstr. 6, 68723 Schwetzingen",p:"+49 6202 4050",e:"info@hotel-backmulde.de",w:"hotel-backmulde.de"},
+  {t:"hotel",n:"Ringhotel Darmstadt",c:"Darmstadt",a:"Frankensteiner Str. 162, 64367 Mühltal",p:"+49 6151 9500",e:"info@ringhotel-darmstadt.de",w:"ringhotel-darmstadt.de"},
+  {t:"hotel",n:"Best Western Hotel Darmstadt",c:"Darmstadt",a:"Grafenstraße 31, 64283 Darmstadt",p:"+49 6151 9940",e:"info@bestwestern-darmstadt.de",w:"bestwestern-darmstadt.de"},
+  {t:"hotel",n:"Hotel Am Schloss Weinheim",c:"Weinheim",a:"Schlossstr. 1, 69469 Weinheim",p:"+49 6201 1750",e:"info@hotel-am-schloss.de",w:"hotel-am-schloss.de"},
+  {t:"hotel",n:"Parkhotel Wiesloch",c:"Wiesloch",a:"Schwetzinger Str. 99, 69168 Wiesloch",p:"+49 6222 5720",e:"info@parkhotel-wiesloch.de",w:"parkhotel-wiesloch.de"},
+  {t:"hotel",n:"Hotel Zum Goldenen Ochsen",c:"Eberbach",a:"Hauptstraße 66, 69412 Eberbach",p:"+49 6271 92020",e:"info@goldener-ochsen.de",w:"goldener-ochsen.de"},
+  {t:"hotel",n:"Hotel Krone Heppenheim",c:"Heppenheim",a:"Marktplatz 2, 64646 Heppenheim",p:"+49 6252 92930",e:"info@hotel-krone-heppenheim.de",w:"hotel-krone-heppenheim.de"},
+  {t:"waescherei",n:"Mewa Textil-Service",c:"Waghäusel",a:"Speyerer Str. 2, 68753 Waghäusel",p:"+49 7254 9080",e:"info@mewa.de",w:"mewa.de"},
+  {t:"waescherei",n:"Bardusch GmbH",c:"Ettlingen",a:"Im Winkel 1, 76275 Ettlingen",p:"+49 7243 7040",e:"info@bardusch.de",w:"bardusch.de"},
+  {t:"waescherei",n:"Wäscherei Lühmann",c:"Mannheim",a:"Industriestraße 5, 68169 Mannheim",p:"+49 621 3105050",e:"info@waescherei-luehmann.de",w:"waescherei-luehmann.de"},
+  {t:"waescherei",n:"Textilpflege Röser",c:"Heidelberg",a:"Burgweg 13, 69121 Heidelberg",p:"+49 6221 481230",e:"info@roeser-textilpflege.de",w:"roeser-textilpflege.de"},
+  {t:"waescherei",n:"Wäscherei Knapp",c:"Speyer",a:"Industriestr. 21, 67346 Speyer",p:"+49 6232 31580",e:"info@waescherei-knapp.de",w:"waescherei-knapp.de"},
+  {t:"waescherei",n:"Alsco Berufskleidung",c:"Worms",a:"Valckenburger Str. 1, 67547 Worms",p:"+49 6241 9460",e:"worms@alsco.de",w:"alsco.de"},
+  {t:"waescherei",n:"Reinigungswerk Bensheim",c:"Bensheim",a:"Berliner Ring 89, 64625 Bensheim",p:"+49 6251 72890",e:"info@reinigungswerk-bensheim.de",w:"reinigungswerk-bensheim.de"},
+  {t:"waescherei",n:"Permo Textilservice",c:"Viernheim",a:"Otto-Hahn-Str. 1, 68519 Viernheim",p:"+49 6204 96060",e:"info@permo.de",w:"permo.de"},
+  {t:"waescherei",n:"Wäscherei Schüssler",c:"Lampertheim",a:"Industriestr. 8, 68623 Lampertheim",p:"+49 6206 5950",e:"info@waescherei-schuessler.de",w:"waescherei-schuessler.de"},
+  {t:"waescherei",n:"Textilservice Woelk",c:"Ludwigshafen",a:"Brunckstraße 47, 67063 Ludwigshafen",p:"+49 621 6903030",e:"info@textilservice-woelk.de",w:"textilservice-woelk.de"},
+  {t:"waescherei",n:"CWS-boco",c:"Weinheim",a:"Bergstraße 92, 69469 Weinheim",p:"+49 6201 18900",e:"weinheim@cws-boco.de",w:"cws-boco.de"},
+  {t:"waescherei",n:"Lindström GmbH",c:"Heidelberg",a:"Im Breitspiel 7, 69126 Heidelberg",p:"+49 6221 3190",e:"heidelberg@lindstromgroup.com",w:"lindstromgroup.com"},
+  {t:"waescherei",n:"Wäscherei Stauber",c:"Schwetzingen",a:"Zeyherstr. 15, 68723 Schwetzingen",p:"+49 6202 18760",e:"info@waescherei-stauber.de",w:"waescherei-stauber.de"},
+  {t:"waescherei",n:"Textilreinigung Lenz",c:"Wiesloch",a:"Gutenbergstraße 3, 69168 Wiesloch",p:"+49 6222 31890",e:"info@lenz-textilreinigung.de",w:"lenz-textilreinigung.de"},
+  {t:"waescherei",n:"Wäscherei Götz",c:"Heppenheim",a:"Lorscher Str. 14, 64646 Heppenheim",p:"+49 6252 72040",e:"info@waescherei-goetz.de",w:"waescherei-goetz.de"},
+  {t:"waescherei",n:"Pik AS Textilservice",c:"Darmstadt",a:"Robert-Bosch-Str. 11, 64293 Darmstadt",p:"+49 6151 87890",e:"darmstadt@pikas.de",w:"pikas.de"},
+  {t:"waescherei",n:"Wäscherei Hoffmann",c:"Bürstadt",a:"Industriering 6, 68642 Bürstadt",p:"+49 6206 70490",e:"info@waesche-hoffmann.de",w:"waesche-hoffmann.de"},
+  {t:"waescherei",n:"Textilservice Kern",c:"Biblis",a:"Industriestraße 12, 68647 Biblis",p:"+49 6245 18950",e:"info@textilservice-kern.de",w:"textilservice-kern.de"},
+  {t:"waescherei",n:"Wäscherei Roth",c:"Lorsch",a:"Nibelungenstraße 55, 64653 Lorsch",p:"+49 6251 580780",e:"info@waescherei-roth.de",w:"waescherei-roth.de"},
+  {t:"waescherei",n:"Cleanservice Müller",c:"Frankenthal",a:"Dürkheimer Str. 40, 67227 Frankenthal",p:"+49 6233 35670",e:"info@cleanservice-mueller.de",w:"cleanservice-mueller.de"},
+  {t:"hotel",n:"⚠ TEST - Adolf Staubert",c:"Biblis",a:"Heinrich-Hertz-Straße 4, 68647 Biblis",p:"+49 171 4758126",e:"adolfstaubert6@gmail.com",w:"striker-energy.de"}
+];
+
+var currentUser='', sharedData={}, currentFilter='all', currentSearch='';
+
+function showToast(msg){var t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(function(){t.classList.remove('show')},2500)}
+
+function setSS(type,txt){
+  var d=document.getElementById('sdot'),t=document.getElementById('stxt');
+  if(!d)return;
+  d.className='dot'+(type==='s'?' pulse':type==='e'?' err':'');
+  t.textContent=txt;
+  t.style.color=type==='e'?'#ff3333':type==='s'?'var(--accent2)':'var(--waescherei)';
+}
+
+function startSync(){
+  setSS('s','Pripája sa...');
+  db.collection('striker').doc('crm').onSnapshot(function(snap){
+    sharedData=snap.exists?snap.data():{};
+    setSS('ok','Live ●');
+    var d=new Date();
+    document.getElementById('stime').textContent=d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0');
+    render();
+  },function(err){setSS('e','Chyba');console.error(err)});
+}
+
+function saveToFB(id,data){
+  setSS('s','Ukladá...');
+  db.collection('striker').doc('crm').set(Object.assign({},sharedData,{[id]:data}))
+  .then(function(){setSS('ok','Live ●')})
+  .catch(function(){setSS('e','Chyba');showToast('⚠ Uloženie zlyhalo')});
+}
+
+function startAs(name){
+  currentUser=name;
+  localStorage.setItem('striker-user',name);
+  document.getElementById('setup').style.display='none';
+  document.getElementById('app').style.display='block';
+  document.getElementById('ulabel').textContent=name;
+  startSync();
+}
+
+function startCustom(){var n=document.getElementById('cname').value.trim();if(n)startAs(n)}
+
+function logout(){
+  localStorage.removeItem('striker-user');
+  document.getElementById('setup').style.display='flex';
+  document.getElementById('app').style.display='none';
+}
+
+function setStatus(id,s){
+  if(!sharedData[id])sharedData[id]={};
+  sharedData[id].status=sharedData[id].status===s?'':s;
+  sharedData[id].who=currentUser;
+  saveToFB(id,sharedData[id]);
+  render();
+}
+
+function saveNote(id){
+  var ta=document.querySelector('.narea[data-id="'+id+'"]');
+  if(!ta)return;
+  if(!sharedData[id])sharedData[id]={};
+  sharedData[id].notes=ta.value;
+  sharedData[id].noteWho=currentUser;
+  saveToFB(id,sharedData[id]);
+  showToast('✓ Poznámka uložená');
+}
+
+function getTemplate(c){
+  if(c.t==='hotel'){
+    return {
+      subject:'Reduzierung Ihrer Heizkosten – STRIKER Wärmetechnologie',
+      body:'Sehr geehrte Damen und Herren,\n\nmein Name ist Adolf Staubert, ich bin Entwickler einer patentierten industriellen Heiztechnologie namens STRIKER.\n\nUnser System erzeugt bei einem elektrischen Verbrauch von nur 45 kW eine Wärmeleistung von 120–160 kW – das entspricht einer Einsparung von bis zu 70% gegenüber herkömmlichen Heizsystemen.\n\nFür Hotels mit hohem Warmwasserbedarf bietet STRIKER ein erhebliches Einsparpotenzial.\n\nPreis: ab 8.000 EUR, Lieferzeit 6–8 Wochen.\n\nDarf ich mich kurz telefonisch bei Ihnen melden?\n\nMit freundlichen Grüßen\nAdolf Staubert\nSTRIKER Wärmetechnologie\nTel: +49 171 4758126\nE-Mail: info@striker-energy.de'
+    };
+  }
+  return {
+    subject:'Senkung Ihrer Heizkosten in der Wäscherei – STRIKER Technologie',
+    body:'Sehr geehrte Damen und Herren,\n\nmein Name ist Adolf Staubert, ich bin Entwickler einer patentierten industriellen Heiztechnologie namens STRIKER.\n\nIndustriewäschereien gehören zu den energieintensivsten Betrieben – unser System kann Ihren Wärmeenergiebedarf drastisch senken.\n\nBei 45 kW elektrischer Leistung erzeugt STRIKER 120–160 kW Wärme. Das bedeutet bis zu 70% weniger Heizkosten.\n\nPreis: ab 8.000 EUR, Lieferzeit 6–8 Wochen.\n\nDarf ich Sie kurz telefonisch kontaktieren?\n\nMit freundlichen Grüßen\nAdolf Staubert\nSTRIKER Wärmetechnologie\nTel: +49 171 4758126\nE-Mail: info@striker-energy.de'
+  };
+}
+
+function sendEmail(id){
+  var c=contacts[parseInt(id)];
+  var tpl=getTemplate(c);
+  var btn=document.querySelector('.ebtn[data-id="'+id+'"]');
+  if(btn){btn.textContent='⏳ Odosiela sa...';btn.disabled=true;}
+  fetch('/.netlify/functions/send-email',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({to:c.e,subject:tpl.subject,message:tpl.body})
+  }).then(function(r){return r.json()}).then(function(result){
+    if(result.success){
+      showToast('✓ Email odoslaný na '+(result.sentTo||c.e));
+      if(!sharedData[id])sharedData[id]={};
+      if(!sharedData[id].status)sharedData[id].status='k';
+      sharedData[id].who=currentUser;
+      saveToFB(id,sharedData[id]);
+      if(btn){btn.textContent='✓ Odoslaný';btn.style.background='rgba(0,204,136,.2)';btn.style.color='var(--waescherei)';}
+    }else{
+      showToast('⚠ Chyba: '+(result.error||'Neznáma chyba'));
+      if(btn){btn.textContent='📧 Email odoslať';btn.disabled=false;}
+    }
+  }).catch(function(){
+    showToast('⚠ Spojenie zlyhalo');
+    if(btn){btn.textContent='📧 Email odoslať';btn.disabled=false;}
+  });
+}
+
+function toggleCard(el){el.closest('.contact').classList.toggle('open')}
+
+function render(){
+  var list=document.getElementById('list');
+  if(!list)return;
+  var arr=contacts.filter(function(c){
+    if(currentFilter!=='all'&&c.t!==currentFilter)return false;
+    if(currentSearch){var q=currentSearch.toLowerCase();return c.n.toLowerCase().includes(q)||c.c.toLowerCase().includes(q);}
+    return true;
+  });
+  var hotels=arr.filter(function(c){return c.t==='hotel'});
+  var waesch=arr.filter(function(c){return c.t==='waescherei'});
+  var html='';
+  if(hotels.length){html+='<div class="slabel">Hotely ('+hotels.length+')</div>';hotels.forEach(function(c){html+=cardHtml(c)});}
+  if(waesch.length){html+='<div class="slabel">Práčovne ('+waesch.length+')</div>';waesch.forEach(function(c){html+=cardHtml(c)});}
+  if(!html)html='<div style="text-align:center;padding:2.5rem;color:var(--muted);font-size:.8rem">Žiadne výsledky</div>';
+  list.innerHTML=html;
+}
+
+function cardHtml(c){
+  var id=contacts.indexOf(c).toString();
+  var d=sharedData[id]||{};
+  var st=d.status||'';
+  var notes=d.notes||'';
+  var who=d.who||'';
+  var sb=st?'<span class="sbadge s'+st+'">'+(st==='k'?'Kontaktovaný':st==='a'?'Ponuka':'Uzavreté')+'</span>':'';
+  var el=c.t==='hotel'?'📧 Email odoslať (Hotel)':'📧 Email odoslať (Práčovňa)';
+  return '<div class="contact '+c.t+'">'+
+    '<div class="cleft" onclick="toggleCard(this)">'+
+    '<div class="cname">'+c.n+sb+'</div>'+
+    '<div class="ccity">'+c.c+'</div>'+
+    '<div class="cdetails">'+
+    '<div class="drow"><strong>Adresa</strong><br>'+c.a+'</div>'+
+    '<div class="drow"><strong>Tel</strong><br><a href="tel:'+c.p+'">'+c.p+'</a></div>'+
+    '<div class="drow"><strong>E-Mail</strong><br><a href="mailto:'+c.e+'">'+c.e+'</a></div>'+
+    '<div class="drow"><strong>Web</strong><br><a href="https://'+c.w+'" target="_blank">'+c.w+'</a></div>'+
+    '<button class="ebtn" data-id="'+id+'" onclick="event.stopPropagation();sendEmail(\''+id+'\')">'+el+'</button>'+
+    '<div class="srow">'+
+    '<button class="stbtn'+(st==='k'?' ak':'')+'" onclick="event.stopPropagation();setStatus(\''+id+'\',\'k\')">Kontaktovaný</button>'+
+    '<button class="stbtn'+(st==='a'?' aa':'')+'" onclick="event.stopPropagation();setStatus(\''+id+'\',\'a\')">Ponuka</button>'+
+    '<button class="stbtn'+(st==='x'?' ax':'')+'" onclick="event.stopPropagation();setStatus(\''+id+'\',\'x\')">Uzavreté</button>'+
+    '</div>'+
+    (who?'<div class="wholine">Status: '+who+'</div>':'')+
+    '<textarea class="narea" data-id="'+id+'" placeholder="Poznámky..." onclick="event.stopPropagation()">'+notes+'</textarea>'+
+    '<button class="nbtn" onclick="event.stopPropagation();saveNote(\''+id+'\')">Uložiť poznámku</button>'+
+    '</div></div>'+
+    '<span class="cbadge '+c.t+'">'+(c.t==='hotel'?'Hotel':'Práč.')+'</span>'+
+    '</div>';
+}
+
+document.getElementById('search').addEventListener('input',function(e){currentSearch=e.target.value;render()});
+document.querySelectorAll('.fbtn').forEach(function(btn){
+  btn.addEventListener('click',function(){
+    document.querySelectorAll('.fbtn').forEach(function(b){b.classList.remove('active')});
+    btn.classList.add('active');currentFilter=btn.dataset.f;render();
+  });
+});
+document.getElementById('cname').addEventListener('keydown',function(e){if(e.key==='Enter')startCustom()});
+
+var savedUser=localStorage.getItem('striker-user');
+if(savedUser)startAs(savedUser);
+</script>
+</body>
+</html>
