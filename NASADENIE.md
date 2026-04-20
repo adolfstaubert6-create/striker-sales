@@ -28,7 +28,7 @@ striker-sales-v2/
 ### 3. Environment variables (SMTP heslá)
 - Netlify dashboard → striker-sales → Site settings → Environment variables
 - Pridaj:
-  SMTP_USER = info@striker-energy.de
+  SMTP_USER = your-email@example.com
   SMTP_PASS = [tvoje IONOS heslo]
 
 ### 4. Redeploy
@@ -38,4 +38,4 @@ striker-sales-v2/
 - Frontend volá /.netlify/functions/send-email
 - Email sa odosiela cez IONOS SMTP
 - SMTP heslo nie je viditeľné v kóde
-- Odosielateľ: "Striker Energy" <info@striker-energy.de>
+- your-email@example.com
