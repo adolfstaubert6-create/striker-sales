@@ -3,79 +3,99 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>STRIKER – Agent Control Panel</title>
+  <title>STRIKER – Drafty schválenie</title>
   <style>
-    body { font-family: sans-serif; background: #0f0f0f; color: #fff; padding: 20px; }
-    h1 { color: #00e5ff; font-size: 1.4em; margin-bottom: 20px; }
-    .karta { background: #1a1a1a; border: 1px solid #333; border-radius: 10px; padding: 16px; margin-bottom: 16px; }
-    .karta h2 { font-size: 1em; color: #00e5ff; margin: 0 0 8px; }
-    .karta p { font-size: 0.85em; color: #aaa; white-space: pre-wrap; margin: 0 0 12px; }
-    .btn { background: #00e5ff; color: #000; border: none; padding: 10px 20px; border-radius: 6px; font-weight: bold; cursor: pointer; }
-    .btn:disabled { background: #333; color: #666; cursor: default; }
-    .status { font-size: 0.8em; color: #4caf50; margin-top: 8px; }
-    #loading { color: #aaa; }
+    body { font-family: sans-serif; background: #0f0f0f; color: #eee; padding: 20px; }
+    h1 { color: #f90; }
+    .draft { background: #1a1a1a; border: 1px solid #333; border-radius: 8px; padding: 16px; margin-bottom: 16px; transition: opacity 0.5s; }
+    .draft h3 { margin: 0 0 8px; color: #f90; }
+    .draft p { margin: 4px 0; font-size: 14px; white-space: pre-wrap; }
+    .label { color: #aaa; font-size: 12px; }
+    button { margin-top: 12px; padding: 10px 20px; background: #f90; color: #000; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
+    button:disabled { background: #555; color: #999; cursor: default; }
+    #status { margin-bottom: 20px; color: #aaa; }
   </style>
 </head>
 <body>
+  <h1>📋 STRIKER Drafty</h1>
+  <div id="status">Načítavam konfiguráciu...</div>
+  <div id="drafts-container"></div>
 
-<h1>⚡ STRIKER – Drafty na schválenie</h1>
-<div id="loading">Načítavam drafty...</div>
-<div id="zoznam"></div>
-
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
-  import { getFirestore, collection, query, where, getDocs, doc, updateDoc }
-    from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
-
-  const firebaseConfig = {
-    apiKey: "AIzaSyChBW8fhC1eEVPudYZjKtoPL1bP334B7nI",
-    authDomain: "striker-sales.firebaseapp.com",
-    projectId: "striker-sales",
-    storageBucket: "striker-sales.firebasestorage.app",
-    messagingSenderId: "582537757434",
-    appId: "1:582537757434:web:4d1e53b48480f47efcff43",
-    measurementId: "G-0S3RY7WYZ8"
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
-
-  async function nacitajDrafty() {
-    const q = query(collection(db, "contact_queue"), where("approved", "==", false));
-    const snapshot = await getDocs(q);
-    const zoznam = document.getElementById("zoznam");
-    document.getElementById("loading").style.display = "none";
-
-    if (snapshot.empty) {
-      zoznam.innerHTML = "<p style='color:#aaa'>Žiadne drafty na schválenie.</p>";
-      return;
+  <script type="module">
+    // 1. Config cez Netlify funkciu
+    let firebaseConfig;
+    try {
+      const res = await fetch('/.netlify/functions/get-config');
+      firebaseConfig = await res.json();
+    } catch (e) {
+      document.getElementById('status').textContent = '❌ Chyba: nepodarilo sa načítať config.';
+      throw e;
     }
 
+    // 2. Inicializuj Firebase
+    const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
+    const { getFirestore, collection, getDocs, doc, updateDoc, query, where } =
+      await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // 3. Načítaj iba neschválené drafty
+    const statusEl = document.getElementById('status');
+    const container = document.getElementById('drafts-container');
+
+    statusEl.textContent = 'Načítavam drafty...';
+
+    let snapshot;
+    try {
+      const q = query(collection(db, 'contact_queue'), where('approved', '==', false));
+      snapshot = await getDocs(q);
+    } catch (e) {
+      statusEl.textContent = '❌ Chyba pri načítaní Firestore.';
+      throw e;
+    }
+
+    if (snapshot.empty) {
+      statusEl.textContent = '✅ Žiadne čakajúce drafty.';
+    } else {
+      statusEl.textContent = `Čakajú na schválenie: ${snapshot.size}`;
+    }
+
+    // 4. Zobraz každý draft
     snapshot.forEach(docSnap => {
       const d = docSnap.data();
-      const karta = document.createElement("div");
-      karta.className = "karta";
-      karta.innerHTML = `
-        <h2>${d.companyName || d.name || docSnap.id}</h2>
-        <p>${d.emailDraft || d.draft || "(žiadny text draftu)"}</p>
-        <button class="btn" id="btn-${docSnap.id}">✅ Schváliť</button>
-        <div class="status" id="status-${docSnap.id}"></div>
+      const div = document.createElement('div');
+      div.className = 'draft';
+      div.innerHTML = `
+        <h3>${d.company || d.name || docSnap.id}</h3>
+        <p><span class="label">Email:</span> ${d.email || '–'}</p>
+        <p><span class="label">Správa:</span>\n${d.body || d.message || d.text || '–'}</p>
+        <p><span class="label">Stav:</span> ⏳ Čaká na schválenie</p>
       `;
-      zoznam.appendChild(karta);
 
-      document.getElementById(`btn-${docSnap.id}`).addEventListener("click", async () => {
-        const btn = document.getElementById(`btn-${docSnap.id}`);
-        const status = document.getElementById(`status-${docSnap.id}`);
+      const btn = document.createElement('button');
+      btn.textContent = '✅ Schváliť';
+      btn.onclick = async () => {
         btn.disabled = true;
-        btn.textContent = "Ukladám...";
-        await updateDoc(doc(db, "contact_queue", docSnap.id), { approved: true });
-        btn.textContent = "✅ Schválené";
-        status.textContent = "Agent pošle pri ďalšom behu";
-      });
+        btn.textContent = 'Ukladám...';
+        try {
+          await updateDoc(doc(db, 'contact_queue', docSnap.id), { approved: true });
+          // Karta zmizne plynule
+          div.style.opacity = '0';
+          setTimeout(() => div.remove(), 500);
+          // Aktualizuj počítadlo
+          const remaining = container.querySelectorAll('.draft').length - 1;
+          statusEl.textContent = remaining > 0
+            ? `Čakajú na schválenie: ${remaining}`
+            : '✅ Všetky drafty schválené.';
+        } catch (e) {
+          btn.textContent = '❌ Chyba – skús znova';
+          btn.disabled = false;
+        }
+      };
+      div.appendChild(btn);
+      container.appendChild(div);
     });
-  }
-
-  nacitajDrafty();
-</script>
+  </script>
 </body>
 </html>
