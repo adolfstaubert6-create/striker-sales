@@ -1,13 +1,11 @@
-console.log("send-email function loaded");
-
-const nodemailer = require("nodemailer");
+const { Resend } = require('resend');
 
 exports.handler = async (event) => {
   // GET - test ci funkcia zije
   if (event.httpMethod === 'GET') {
     return {
       statusCode: 200,
-      body: JSON.stringify({ ok: true, message: "send-email function is alive" })
+      body: JSON.stringify({ ok: true, message: 'send-email function is alive' })
     };
   }
 
@@ -25,55 +23,55 @@ exports.handler = async (event) => {
   const { to, subject, message } = data;
 
   if (!to || !subject || !message) {
+    console.error('[send-email] Missing fields:', { to: !!to, subject: !!subject, message: !!message });
     return {
       statusCode: 400,
       body: JSON.stringify({ error: 'Chýbajú povinné polia: to, subject, message' })
     };
   }
 
-  const host = process.env.SMTP_HOST || 'smtp.ionos.de';
-  const user = process.env.SMTP_USER;
-  const pass = process.env.SMTP_PASS;
-
-  console.log('[send-email] Config:', { host, user: user || 'MISSING', pass: pass ? 'SET' : 'MISSING', to });
-
-  if (!user || !pass) {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) {
+    console.error('[send-email] RESEND_API_KEY is not set');
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: 'SMTP nie je nakonfigurovaný' })
+      body: JSON.stringify({ error: 'RESEND_API_KEY nie je nakonfigurovaný' })
     };
   }
 
-  try {
-    const transporter = nodemailer.createTransport({
-      host,
-      port: 587,
-      secure: false,
-      auth: { user, pass },
-      tls: { rejectUnauthorized: false },
-      connectionTimeout: 10000,
-      socketTimeout: 15000
-    });
+  console.log('[send-email] Sending via Resend to:', to, '| Subject:', subject);
 
-    const info = await transporter.sendMail({
-      from: `"STRIKER Wärmetechnologie" <${user}>`,
-      to,
+  try {
+    const resend = new Resend(apiKey);
+    const htmlBody = message.replace(/\n/g, '<br>');
+
+    const { data: result, error } = await resend.emails.send({
+      from: 'STRIKER Wärmetechnologie <info@striker-energy.de>',
+      to: [to],
       subject,
       text: message,
-      html: `<div style="font-family:Arial,sans-serif;font-size:14px;line-height:1.8">${message.replace(/\n/g, '<br>')}</div>`
+      html: `<div style="font-family:Arial,sans-serif;font-size:14px;line-height:1.8;color:#222">${htmlBody}</div>`
     });
 
-    console.log('[send-email] Sent OK:', info.messageId);
+    if (error) {
+      console.error('[send-email] Resend error:', error);
+      return {
+        statusCode: 500,
+        body: JSON.stringify({ success: false, error: error.message })
+      };
+    }
+
+    console.log('[send-email] Sent OK. ID:', result.id, '| To:', to);
     return {
       statusCode: 200,
-      body: JSON.stringify({ success: true, sentTo: to, messageId: info.messageId })
+      body: JSON.stringify({ success: true, sentTo: to, messageId: result.id })
     };
 
-  } catch (error) {
-    console.error('[send-email] Error:', error.message, error.code);
+  } catch (err) {
+    console.error('[send-email] Unexpected error:', err.message);
     return {
       statusCode: 500,
-      body: JSON.stringify({ success: false, error: error.message, code: error.code })
+      body: JSON.stringify({ success: false, error: err.message })
     };
   }
 };
