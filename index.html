@@ -118,15 +118,7 @@ footer span{color:var(--accent)}
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script>
-var fbApp = firebase.initializeApp({
-  apiKey:"AIzaSyChBW8fhC1eEVPudYZjKtoPL1bP334B7nI",
-  authDomain:"striker-sales.firebaseapp.com",
-  projectId:"striker-sales",
-  storageBucket:"striker-sales.firebasestorage.app",
-  messagingSenderId:"582537757434",
-  appId:"1:582537757434:web:2936d4de921a14eafcff43"
-});
-var db = firebase.firestore();
+var db;
 
 var contacts = [
   {t:"hotel",n:"⚠ TEST - Adolf Staubert",c:"Biblis",a:"Heinrich-Hertz-Straße 4, 68647 Biblis",p:"+49 171 4758126",e:"info@striker-energy.de",w:"striker-energy.de"},
@@ -346,8 +338,19 @@ document.querySelectorAll('.fbtn').forEach(function(btn){
 });
 document.getElementById('cname').addEventListener('keydown',function(e){if(e.key==='Enter')startCustom()});
 
-var savedUser=localStorage.getItem('striker-user');
-if(savedUser)startAs(savedUser);
+(async function(){
+  try{
+    var res=await fetch('/.netlify/functions/get-config');
+    var cfg=await res.json();
+    firebase.initializeApp(cfg);
+    db=firebase.firestore();
+  }catch(e){
+    document.getElementById('setup').innerHTML='<div style="color:#ff3333;font-family:\'IBM Plex Mono\',monospace;padding:2rem;text-align:center">❌ Nepodarilo sa načítať konfiguráciu.</div>';
+    return;
+  }
+  var savedUser=localStorage.getItem('striker-user');
+  if(savedUser)startAs(savedUser);
+})();
 </script>
 </body>
 </html>
