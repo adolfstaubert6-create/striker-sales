@@ -15,6 +15,7 @@ exports.handler = async (event) => {
   const { to, subject, message } = data;
 
   if (!to || !subject || !message) {
+    console.error('[send-email] Missing fields:', { to: !!to, subject: !!subject, message: !!message });
     return {
       statusCode: 400,
       body: JSON.stringify({ error: 'Chýbajú povinné polia: to, subject, message' })
@@ -26,7 +27,17 @@ exports.handler = async (event) => {
   const user = process.env.SMTP_USER;
   const pass = process.env.SMTP_PASS;
 
+  console.log('[send-email] Config check:', {
+    host: host || 'MISSING',
+    port,
+    user: user || 'MISSING',
+    pass: pass ? '***set***' : 'MISSING',
+    to,
+    subject
+  });
+
   if (!host || !user || !pass) {
+    console.error('[send-email] SMTP env vars missing');
     return {
       statusCode: 500,
       body: JSON.stringify({ error: 'SMTP nie je nakonfigurovaný na serveri' })
@@ -42,6 +53,10 @@ exports.handler = async (event) => {
       tls: { rejectUnauthorized: false }
     });
 
+    console.log('[send-email] Verifying SMTP connection...');
+    await transporter.verify();
+    console.log('[send-email] SMTP connection OK, sending...');
+
     const htmlBody = message.replace(/\n/g, '<br>');
 
     const info = await transporter.sendMail({
@@ -52,6 +67,8 @@ exports.handler = async (event) => {
       html: `<div style="font-family:Arial,sans-serif;font-size:14px;line-height:1.8;color:#222">${htmlBody}</div>`,
     });
 
+    console.log('[send-email] Sent OK. MessageId:', info.messageId, '| To:', to);
+
     return {
       statusCode: 200,
       body: JSON.stringify({
@@ -61,6 +78,7 @@ exports.handler = async (event) => {
       }),
     };
   } catch (error) {
+    console.error('[send-email] SMTP error:', error.message, '| Code:', error.code, '| Response:', error.response);
     return {
       statusCode: 500,
       body: JSON.stringify({
