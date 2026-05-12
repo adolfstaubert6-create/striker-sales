@@ -13,27 +13,40 @@
     .sub{font-size:.6rem;color:var(--muted);margin-bottom:1.5rem;letter-spacing:1px}
     #status-bar{font-size:.65rem;color:var(--muted);margin-bottom:1rem;padding:.45rem .8rem;background:var(--surface);border:1px solid var(--border);border-radius:2px}
     .section-title{font-size:.58rem;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin:1.5rem 0 .6rem;border-bottom:1px solid var(--border);padding-bottom:.3rem}
+
     .draft{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--accent2);border-radius:2px;padding:1rem;margin-bottom:.6rem;transition:opacity .4s,transform .4s}
-    .draft.sending{opacity:.6}
+    .draft.sending{opacity:.6;pointer-events:none}
     .draft.done{opacity:0;transform:translateX(20px)}
-    .dname{font-size:.85rem;font-weight:600;color:var(--accent2);margin-bottom:.25rem}
-    .dmeta{font-size:.6rem;color:var(--muted);margin-bottom:.7rem}
-    .dprev{background:var(--bg);border:1px solid var(--border);padding:.6rem .8rem;font-size:.65rem;color:#aaa;white-space:pre-wrap;max-height:130px;overflow-y:auto;border-radius:2px;margin-bottom:.75rem;line-height:1.6;font-family:'IBM Plex Mono',monospace}
+    .draft.is-error{border-left-color:var(--err)}
+
+    .dname{font-size:.85rem;font-weight:600;color:var(--accent2);margin-bottom:.2rem}
+    .dmeta{font-size:.6rem;color:var(--muted);margin-bottom:.75rem}
+    .emsg{font-size:.62rem;color:var(--err);margin-bottom:.6rem;padding:.35rem .5rem;background:rgba(255,51,51,.08);border-radius:2px}
+
+    .field-label{font-size:.55rem;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:.25rem}
+    .dsubject{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:'IBM Plex Mono',monospace;font-size:.72rem;padding:.4rem .6rem;border-radius:2px;outline:none;margin-bottom:.6rem}
+    .dsubject:focus{border-color:var(--accent2)}
+    .dbody{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:'IBM Plex Mono',monospace;font-size:.65rem;padding:.5rem .6rem;border-radius:2px;outline:none;resize:vertical;min-height:180px;line-height:1.65;margin-bottom:.75rem}
+    .dbody:focus{border-color:var(--accent2)}
+
     .dbtns{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center}
     .abtn{font-size:.65rem;letter-spacing:1px;text-transform:uppercase;padding:.35rem .9rem;border:none;background:var(--ok);color:#0a0c0f;cursor:pointer;border-radius:2px;font-family:inherit;font-weight:600;transition:background .15s}
     .abtn:hover:not(:disabled){background:#00ffaa}
     .abtn:disabled{background:#1a3a1a;color:var(--ok);cursor:default}
     .rbtn{font-size:.65rem;letter-spacing:1px;text-transform:uppercase;padding:.35rem .7rem;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;border-radius:2px;font-family:inherit;transition:all .15s}
     .rbtn:hover{border-color:var(--err);color:var(--err)}
-    .stag{font-size:.58rem;letter-spacing:1px;text-transform:uppercase;padding:.12rem .4rem;border-radius:2px;margin-left:.5rem}
+    .stag{font-size:.55rem;letter-spacing:1px;text-transform:uppercase;padding:.1rem .35rem;border-radius:2px;margin-left:.4rem;vertical-align:middle}
     .stag.pending{background:rgba(255,170,0,.15);color:var(--accent2)}
     .stag.sending{background:rgba(255,170,0,.3);color:var(--accent2)}
     .stag.error{background:rgba(255,51,51,.15);color:var(--err)}
-    .emsg{font-size:.6rem;color:var(--err);margin-top:.5rem}
-    .hist-item{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--ok);padding:.55rem .8rem;margin-bottom:.35rem;border-radius:2px}
+    .emsg-live{font-size:.6rem;color:var(--err);margin-top:.5rem;display:none}
+
+    .hist-item{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--ok);padding:.55rem .8rem;margin-bottom:.35rem;border-radius:2px;cursor:pointer}
+    .hist-item.open .hist-body{display:block}
     .hist-name{font-size:.75rem;color:var(--ok);font-weight:600;margin-bottom:.1rem}
     .hist-meta{font-size:.58rem;color:var(--muted)}
-    .empty{text-align:center;padding:2rem;color:var(--muted);font-size:.72rem;font-family:'IBM Plex Mono',monospace}
+    .hist-body{display:none;margin-top:.5rem;padding-top:.5rem;border-top:1px solid var(--border);font-size:.62rem;color:#aaa;white-space:pre-wrap;line-height:1.6;max-height:120px;overflow-y:auto}
+    .empty{text-align:center;padding:2rem;color:var(--muted);font-size:.72rem}
   </style>
 </head>
 <body>
@@ -76,7 +89,7 @@
       return d.toLocaleDateString('sk-SK') + ' ' + d.getHours().toString().padStart(2, '0') + ':' + d.getMinutes().toString().padStart(2, '0');
     }
 
-    // Live pending + error drafts (error must stay visible for retry)
+    // Live: pending + error (errors stay visible for retry)
     const pendingQ = query(collection(db, 'contact_queue'), where('status', 'in', ['pending', 'error']));
     onSnapshot(pendingQ, snap => {
       if (snap.empty) {
@@ -91,7 +104,7 @@
       statusBar.textContent = '❌ Firestore chyba: ' + err.message;
     });
 
-    // Live history (sent emails, sorted client-side)
+    // Live: historia odoslanych, zoradena od najnovsich
     const histQ = query(collection(db, 'contact_queue'), where('status', '==', 'sent'));
     onSnapshot(histQ, snap => {
       if (snap.empty) {
@@ -109,7 +122,12 @@
       docs.slice(0, 30).forEach(d => {
         const div = document.createElement('div');
         div.className = 'hist-item';
-        div.innerHTML = `<div class="hist-name">✓ ${d.contactName}</div><div class="hist-meta">${d.to} · ${formatTs(d.sentAt)} · ${d.createdBy || '–'}</div>`;
+        div.innerHTML = `
+          <div class="hist-name">✓ ${d.contactName}</div>
+          <div class="hist-meta">${d.to} · ${formatTs(d.sentAt)} · ${d.createdBy || '–'}</div>
+          <div class="hist-body">${d.sentBody || d.body || '–'}</div>
+        `;
+        div.addEventListener('click', () => div.classList.toggle('open'));
         historyList.appendChild(div);
       });
     });
@@ -118,46 +136,66 @@
       const d = docSnap.data();
       const isError = d.status === 'error';
       const div = document.createElement('div');
-      div.className = isError ? 'draft' : 'draft';
+      div.className = 'draft' + (isError ? ' is-error' : '');
 
       div.innerHTML = `
         <div class="dname">${d.contactName} <span class="stag ${isError ? 'error' : 'pending'}">${isError ? 'error' : 'pending'}</span></div>
-        <div class="dmeta">→ ${d.to} · ${d.type === 'hotel' ? 'Hotel' : 'Práčovňa'} · vytvoril: ${d.createdBy || '–'} · ${formatTs(d.createdAt)}</div>
-        ${isError ? `<div class="emsg" style="display:block">⚠ ${d.errorMsg || 'Neznáma chyba'}</div>` : ''}
-        <div class="dprev">${d.body || '–'}</div>
+        <div class="dmeta">→ ${d.to} · ${d.type === 'hotel' ? 'Hotel' : 'Práčovňa'} · ${d.createdBy || '–'} · ${formatTs(d.createdAt)}</div>
+        ${isError ? `<div class="emsg">⚠ ${d.errorMsg || 'Neznáma chyba'}</div>` : ''}
+        <div class="field-label">Predmet</div>
+        <input class="dsubject" type="text" value="${(d.subject || '').replace(/"/g, '&quot;')}">
+        <div class="field-label">Text emailu</div>
+        <textarea class="dbody">${d.body || ''}</textarea>
         <div class="dbtns">
           <button class="abtn">${isError ? '↺ Skúsiť znova' : '✓ Schváliť &amp; Odoslať'}</button>
           <button class="rbtn">✕ Zamietnuť</button>
         </div>
-        <div class="emsg-live" style="display:none"></div>
+        <div class="emsg-live"></div>
       `;
 
       const abtn = div.querySelector('.abtn');
       const rbtn = div.querySelector('.rbtn');
+      const subjEl = div.querySelector('.dsubject');
+      const bodyEl = div.querySelector('.dbody');
       const emsgLive = div.querySelector('.emsg-live');
       const stag = div.querySelector('.stag');
 
       abtn.addEventListener('click', async () => {
+        const subject = subjEl.value.trim();
+        const message = bodyEl.value.trim();
+
+        if (!subject || !message) {
+          emsgLive.textContent = '⚠ Predmet a text nesmú byť prázdne.';
+          emsgLive.style.display = 'block';
+          return;
+        }
+
         abtn.textContent = '⏳ Odosiela sa...';
         abtn.disabled = true;
         rbtn.disabled = true;
+        subjEl.disabled = true;
+        bodyEl.disabled = true;
         div.classList.add('sending');
         stag.textContent = 'sending';
         stag.className = 'stag sending';
+        emsgLive.style.display = 'none';
 
         try {
           const res = await fetch('/.netlify/functions/send-email', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ to: d.to, subject: d.subject, message: d.body })
+            body: JSON.stringify({ to: d.to, subject, message })
           });
           const result = await res.json();
           if (!result.success) throw new Error(result.error || 'Neznáma chyba servera');
 
+          // Uloz aj finálny odoslaný text do histórie
           await updateDoc(doc(db, 'contact_queue', docSnap.id), {
             status: 'sent',
             approved: true,
-            sentAt: serverTimestamp()
+            sentAt: serverTimestamp(),
+            sentSubject: subject,
+            sentBody: message
           });
 
           try {
@@ -183,6 +221,8 @@
           } catch {}
 
           div.classList.remove('sending');
+          subjEl.disabled = false;
+          bodyEl.disabled = false;
           stag.textContent = 'error';
           stag.className = 'stag error';
           emsgLive.textContent = '⚠ ' + err.message;
