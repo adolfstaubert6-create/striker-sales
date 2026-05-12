@@ -3,99 +3,210 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>STRIKER – Drafty schválenie</title>
+  <title>STRIKER – Email Queue</title>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
   <style>
-    body { font-family: sans-serif; background: #0f0f0f; color: #eee; padding: 20px; }
-    h1 { color: #f90; }
-    .draft { background: #1a1a1a; border: 1px solid #333; border-radius: 8px; padding: 16px; margin-bottom: 16px; transition: opacity 0.5s; }
-    .draft h3 { margin: 0 0 8px; color: #f90; }
-    .draft p { margin: 4px 0; font-size: 14px; white-space: pre-wrap; }
-    .label { color: #aaa; font-size: 12px; }
-    button { margin-top: 12px; padding: 10px 20px; background: #f90; color: #000; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
-    button:disabled { background: #555; color: #999; cursor: default; }
-    #status { margin-bottom: 20px; color: #aaa; }
+    :root{--bg:#0a0c0f;--surface:#111418;--border:#1e2530;--accent:#ff5c00;--accent2:#ffaa00;--text:#e8eaed;--muted:#6b7280;--ok:#00cc88;--err:#ff3333}
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{background:var(--bg);color:var(--text);font-family:'IBM Plex Mono',monospace;padding:1.5rem;max-width:720px;margin:0 auto}
+    h1{font-size:1rem;letter-spacing:4px;color:var(--accent);margin-bottom:.2rem;text-transform:uppercase}
+    .sub{font-size:.6rem;color:var(--muted);margin-bottom:1.5rem;letter-spacing:1px}
+    #status-bar{font-size:.65rem;color:var(--muted);margin-bottom:1rem;padding:.45rem .8rem;background:var(--surface);border:1px solid var(--border);border-radius:2px}
+    .section-title{font-size:.58rem;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin:1.5rem 0 .6rem;border-bottom:1px solid var(--border);padding-bottom:.3rem}
+    .draft{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--accent2);border-radius:2px;padding:1rem;margin-bottom:.6rem;transition:opacity .4s,transform .4s}
+    .draft.sending{opacity:.6}
+    .draft.done{opacity:0;transform:translateX(20px)}
+    .dname{font-size:.85rem;font-weight:600;color:var(--accent2);margin-bottom:.25rem}
+    .dmeta{font-size:.6rem;color:var(--muted);margin-bottom:.7rem}
+    .dprev{background:var(--bg);border:1px solid var(--border);padding:.6rem .8rem;font-size:.65rem;color:#aaa;white-space:pre-wrap;max-height:130px;overflow-y:auto;border-radius:2px;margin-bottom:.75rem;line-height:1.6;font-family:'IBM Plex Mono',monospace}
+    .dbtns{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center}
+    .abtn{font-size:.65rem;letter-spacing:1px;text-transform:uppercase;padding:.35rem .9rem;border:none;background:var(--ok);color:#0a0c0f;cursor:pointer;border-radius:2px;font-family:inherit;font-weight:600;transition:background .15s}
+    .abtn:hover:not(:disabled){background:#00ffaa}
+    .abtn:disabled{background:#1a3a1a;color:var(--ok);cursor:default}
+    .rbtn{font-size:.65rem;letter-spacing:1px;text-transform:uppercase;padding:.35rem .7rem;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;border-radius:2px;font-family:inherit;transition:all .15s}
+    .rbtn:hover{border-color:var(--err);color:var(--err)}
+    .stag{font-size:.58rem;letter-spacing:1px;text-transform:uppercase;padding:.12rem .4rem;border-radius:2px;margin-left:.5rem}
+    .stag.pending{background:rgba(255,170,0,.15);color:var(--accent2)}
+    .stag.sending{background:rgba(255,170,0,.3);color:var(--accent2)}
+    .stag.error{background:rgba(255,51,51,.15);color:var(--err)}
+    .emsg{font-size:.6rem;color:var(--err);margin-top:.5rem}
+    .hist-item{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--ok);padding:.55rem .8rem;margin-bottom:.35rem;border-radius:2px}
+    .hist-name{font-size:.75rem;color:var(--ok);font-weight:600;margin-bottom:.1rem}
+    .hist-meta{font-size:.58rem;color:var(--muted)}
+    .empty{text-align:center;padding:2rem;color:var(--muted);font-size:.72rem;font-family:'IBM Plex Mono',monospace}
   </style>
 </head>
 <body>
-  <h1>📋 STRIKER Drafty</h1>
-  <div id="status">Načítavam konfiguráciu...</div>
-  <div id="drafts-container"></div>
+  <h1>STRIKER · EMAIL QUEUE</h1>
+  <div class="sub">Schvaľovanie a odosielanie emailov · real-time</div>
+  <div id="status-bar">Načítavam...</div>
+
+  <div class="section-title">Čakajú na schválenie</div>
+  <div id="pending-list"></div>
+
+  <div class="section-title">História odoslaných</div>
+  <div id="history-list"></div>
 
   <script type="module">
-    // 1. Config cez Netlify funkciu
-    let firebaseConfig;
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+    import {
+      getFirestore, collection, query, where,
+      onSnapshot, doc, updateDoc, serverTimestamp
+    } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+    const statusBar = document.getElementById('status-bar');
+    const pendingList = document.getElementById('pending-list');
+    const historyList = document.getElementById('history-list');
+
+    let cfg;
     try {
       const res = await fetch('/.netlify/functions/get-config');
-      firebaseConfig = await res.json();
-    } catch (e) {
-      document.getElementById('status').textContent = '❌ Chyba: nepodarilo sa načítať config.';
-      throw e;
+      cfg = await res.json();
+    } catch {
+      statusBar.textContent = '❌ Nepodarilo sa načítať konfiguráciu.';
+      throw new Error('Config load failed');
     }
 
-    // 2. Inicializuj Firebase
-    const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
-    const { getFirestore, collection, getDocs, doc, updateDoc, query, where } =
-      await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
-
-    const app = initializeApp(firebaseConfig);
+    const app = initializeApp(cfg);
     const db = getFirestore(app);
 
-    // 3. Načítaj iba neschválené drafty
-    const statusEl = document.getElementById('status');
-    const container = document.getElementById('drafts-container');
-
-    statusEl.textContent = 'Načítavam drafty...';
-
-    let snapshot;
-    try {
-      const q = query(collection(db, 'contact_queue'), where('approved', '==', false));
-      snapshot = await getDocs(q);
-    } catch (e) {
-      statusEl.textContent = '❌ Chyba pri načítaní Firestore.';
-      throw e;
+    function formatTs(ts) {
+      if (!ts) return '–';
+      const d = ts.toDate ? ts.toDate() : new Date(ts);
+      return d.toLocaleDateString('sk-SK') + ' ' + d.getHours().toString().padStart(2, '0') + ':' + d.getMinutes().toString().padStart(2, '0');
     }
 
-    if (snapshot.empty) {
-      statusEl.textContent = '✅ Žiadne čakajúce drafty.';
-    } else {
-      statusEl.textContent = `Čakajú na schválenie: ${snapshot.size}`;
-    }
+    // Live pending + error drafts (error must stay visible for retry)
+    const pendingQ = query(collection(db, 'contact_queue'), where('status', 'in', ['pending', 'error']));
+    onSnapshot(pendingQ, snap => {
+      if (snap.empty) {
+        pendingList.innerHTML = '<div class="empty">✅ Žiadne čakajúce drafty</div>';
+        statusBar.textContent = 'Všetky emaily spracované.';
+      } else {
+        statusBar.textContent = `Čakajú na schválenie: ${snap.size}`;
+        pendingList.innerHTML = '';
+        snap.forEach(docSnap => renderDraft(docSnap));
+      }
+    }, err => {
+      statusBar.textContent = '❌ Firestore chyba: ' + err.message;
+    });
 
-    // 4. Zobraz každý draft
-    snapshot.forEach(docSnap => {
+    // Live history (sent emails, sorted client-side)
+    const histQ = query(collection(db, 'contact_queue'), where('status', '==', 'sent'));
+    onSnapshot(histQ, snap => {
+      if (snap.empty) {
+        historyList.innerHTML = '<div class="empty">Zatiaľ žiadna história</div>';
+        return;
+      }
+      const docs = [];
+      snap.forEach(d => docs.push({ id: d.id, ...d.data() }));
+      docs.sort((a, b) => {
+        const ta = a.sentAt?.toDate?.() || new Date(0);
+        const tb = b.sentAt?.toDate?.() || new Date(0);
+        return tb - ta;
+      });
+      historyList.innerHTML = '';
+      docs.slice(0, 30).forEach(d => {
+        const div = document.createElement('div');
+        div.className = 'hist-item';
+        div.innerHTML = `<div class="hist-name">✓ ${d.contactName}</div><div class="hist-meta">${d.to} · ${formatTs(d.sentAt)} · ${d.createdBy || '–'}</div>`;
+        historyList.appendChild(div);
+      });
+    });
+
+    function renderDraft(docSnap) {
       const d = docSnap.data();
+      const isError = d.status === 'error';
       const div = document.createElement('div');
-      div.className = 'draft';
+      div.className = isError ? 'draft' : 'draft';
+
       div.innerHTML = `
-        <h3>${d.company || d.name || docSnap.id}</h3>
-        <p><span class="label">Email:</span> ${d.email || '–'}</p>
-        <p><span class="label">Správa:</span>\n${d.body || d.message || d.text || '–'}</p>
-        <p><span class="label">Stav:</span> ⏳ Čaká na schválenie</p>
+        <div class="dname">${d.contactName} <span class="stag ${isError ? 'error' : 'pending'}">${isError ? 'error' : 'pending'}</span></div>
+        <div class="dmeta">→ ${d.to} · ${d.type === 'hotel' ? 'Hotel' : 'Práčovňa'} · vytvoril: ${d.createdBy || '–'} · ${formatTs(d.createdAt)}</div>
+        ${isError ? `<div class="emsg" style="display:block">⚠ ${d.errorMsg || 'Neznáma chyba'}</div>` : ''}
+        <div class="dprev">${d.body || '–'}</div>
+        <div class="dbtns">
+          <button class="abtn">${isError ? '↺ Skúsiť znova' : '✓ Schváliť &amp; Odoslať'}</button>
+          <button class="rbtn">✕ Zamietnuť</button>
+        </div>
+        <div class="emsg-live" style="display:none"></div>
       `;
 
-      const btn = document.createElement('button');
-      btn.textContent = '✅ Schváliť';
-      btn.onclick = async () => {
-        btn.disabled = true;
-        btn.textContent = 'Ukladám...';
+      const abtn = div.querySelector('.abtn');
+      const rbtn = div.querySelector('.rbtn');
+      const emsgLive = div.querySelector('.emsg-live');
+      const stag = div.querySelector('.stag');
+
+      abtn.addEventListener('click', async () => {
+        abtn.textContent = '⏳ Odosiela sa...';
+        abtn.disabled = true;
+        rbtn.disabled = true;
+        div.classList.add('sending');
+        stag.textContent = 'sending';
+        stag.className = 'stag sending';
+
         try {
-          await updateDoc(doc(db, 'contact_queue', docSnap.id), { approved: true });
-          // Karta zmizne plynule
-          div.style.opacity = '0';
-          setTimeout(() => div.remove(), 500);
-          // Aktualizuj počítadlo
-          const remaining = container.querySelectorAll('.draft').length - 1;
-          statusEl.textContent = remaining > 0
-            ? `Čakajú na schválenie: ${remaining}`
-            : '✅ Všetky drafty schválené.';
-        } catch (e) {
-          btn.textContent = '❌ Chyba – skús znova';
-          btn.disabled = false;
+          const res = await fetch('/.netlify/functions/send-email', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ to: d.to, subject: d.subject, message: d.body })
+          });
+          const result = await res.json();
+          if (!result.success) throw new Error(result.error || 'Neznáma chyba servera');
+
+          await updateDoc(doc(db, 'contact_queue', docSnap.id), {
+            status: 'sent',
+            approved: true,
+            sentAt: serverTimestamp()
+          });
+
+          try {
+            await updateDoc(doc(db, 'striker', 'crm'), {
+              [`${d.contactId}.emailStatus`]: 'sent',
+              [`${d.contactId}.emailSentAt`]: new Date().toISOString()
+            });
+          } catch {}
+
+          div.classList.remove('sending');
+          div.classList.add('done');
+          setTimeout(() => div.remove(), 450);
+
+        } catch (err) {
+          await updateDoc(doc(db, 'contact_queue', docSnap.id), {
+            status: 'error',
+            errorMsg: err.message
+          });
+          try {
+            await updateDoc(doc(db, 'striker', 'crm'), {
+              [`${d.contactId}.emailStatus`]: 'error'
+            });
+          } catch {}
+
+          div.classList.remove('sending');
+          stag.textContent = 'error';
+          stag.className = 'stag error';
+          emsgLive.textContent = '⚠ ' + err.message;
+          emsgLive.style.display = 'block';
+          abtn.textContent = '↺ Skúsiť znova';
+          abtn.disabled = false;
+          rbtn.disabled = false;
         }
-      };
-      div.appendChild(btn);
-      container.appendChild(div);
-    });
+      });
+
+      rbtn.addEventListener('click', async () => {
+        if (!confirm('Zamietnuť tento draft?')) return;
+        await updateDoc(doc(db, 'contact_queue', docSnap.id), { status: 'rejected' });
+        try {
+          await updateDoc(doc(db, 'striker', 'crm'), {
+            [`${d.contactId}.emailStatus`]: ''
+          });
+        } catch {}
+        div.classList.add('done');
+        setTimeout(() => div.remove(), 450);
+      });
+
+      pendingList.appendChild(div);
+    }
   </script>
 </body>
 </html>

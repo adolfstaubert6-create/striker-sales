@@ -67,6 +67,9 @@ header{padding:1.2rem;border-bottom:1px solid var(--border);background:#0a0c0f;d
 .wholine{font-family:'IBM Plex Mono',monospace;font-size:.58rem;color:var(--muted);margin-top:.25rem}
 .ebtn{font-family:'IBM Plex Mono',monospace;font-size:.6rem;letter-spacing:1px;text-transform:uppercase;padding:.3rem .7rem;border:none;background:#1a3a1a;color:#00cc88;cursor:pointer;border-radius:2px;margin-top:.5rem;width:100%;text-align:left}
 .ebtn:hover{background:#00cc88;color:#0a0c0f}
+.ebtn.epending{background:rgba(255,170,0,.1);color:var(--accent2);cursor:default}
+.ebtn.esent{background:rgba(0,204,136,.1);color:var(--waescherei);cursor:default}
+.ebtn.eerror{background:rgba(255,51,51,.1);color:#ff3333;border-color:#ff3333}
 footer{padding:1.2rem;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:.6rem;color:var(--muted);border-top:1px solid var(--border)}
 footer span{color:var(--accent)}
 .toast{position:fixed;bottom:1.2rem;left:50%;transform:translateX(-50%);background:var(--surface);border:1px solid var(--accent2);color:var(--accent2);font-family:'IBM Plex Mono',monospace;font-size:.7rem;padding:.45rem 1rem;border-radius:2px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:999;white-space:nowrap}
@@ -166,8 +169,7 @@ var contacts = [
   {t:"waescherei",n:"Wäscherei Hoffmann",c:"Bürstadt",a:"Industriering 6, 68642 Bürstadt",p:"+49 6206 70490",e:"info@waesche-hoffmann.de",w:"waesche-hoffmann.de"},
   {t:"waescherei",n:"Textilservice Kern",c:"Biblis",a:"Industriestraße 12, 68647 Biblis",p:"+49 6245 18950",e:"info@textilservice-kern.de",w:"textilservice-kern.de"},
   {t:"waescherei",n:"Wäscherei Roth",c:"Lorsch",a:"Nibelungenstraße 55, 64653 Lorsch",p:"+49 6251 580780",e:"info@waescherei-roth.de",w:"waescherei-roth.de"},
-  {t:"waescherei",n:"Cleanservice Müller",c:"Frankenthal",a:"Dürkheimer Str. 40, 67227 Frankenthal",p:"+49 6233 35670",e:"info@cleanservice-mueller.de",w:"cleanservice-mueller.de"},
-  {t:"hotel",n:"⚠ TEST - Adolf Staubert",c:"Biblis",a:"Heinrich-Hertz-Straße 4, 68647 Biblis",p:"+49 171 4758126",e:"adolfstaubert6@gmail.com",w:"striker-energy.de"}
+  {t:"waescherei",n:"Cleanservice Müller",c:"Frankenthal",a:"Dürkheimer Str. 40, 67227 Frankenthal",p:"+49 6233 35670",e:"info@cleanservice-mueller.de",w:"cleanservice-mueller.de"}
 ];
 
 var currentUser='', sharedData={}, currentFilter='all', currentSearch='';
@@ -250,27 +252,32 @@ function getTemplate(c){
 
 function sendEmail(id){
   var c=contacts[parseInt(id)];
+  var d=sharedData[id]||{};
+  if(d.emailStatus==='pending'||d.emailStatus==='sending'){showToast('⏳ Email čaká na schválenie');return;}
+  if(d.emailStatus==='sent'){showToast('✓ Email bol už odoslaný');return;}
   var tpl=getTemplate(c);
   var btn=document.querySelector('.ebtn[data-id="'+id+'"]');
-  if(btn){btn.textContent='⏳ Odosiela sa...';btn.disabled=true;}
-  fetch('/.netlify/functions/send-email',{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({to:c.e,subject:tpl.subject,message:tpl.body})
-  }).then(function(r){return r.json()}).then(function(result){
-    if(result.success){
-      showToast('✓ Email odoslaný na '+(result.sentTo||c.e));
-      if(!sharedData[id])sharedData[id]={};
-      if(!sharedData[id].status)sharedData[id].status='k';
-      sharedData[id].who=currentUser;
-      saveToFB(id,sharedData[id]);
-      if(btn){btn.textContent='✓ Odoslaný';btn.style.background='rgba(0,204,136,.2)';btn.style.color='var(--waescherei)';}
-    }else{
-      showToast('⚠ Chyba: '+(result.error||'Neznáma chyba'));
-      if(btn){btn.textContent='📧 Email odoslať';btn.disabled=false;}
-    }
-  }).catch(function(){
-    showToast('⚠ Spojenie zlyhalo');
+  if(btn){btn.textContent='⏳ Ukladá...';btn.disabled=true;}
+  db.collection('contact_queue').add({
+    contactId:id,
+    contactName:c.n,
+    to:c.e,
+    subject:tpl.subject,
+    body:tpl.body,
+    type:c.t,
+    status:'pending',
+    approved:false,
+    createdBy:currentUser,
+    createdAt:firebase.firestore.FieldValue.serverTimestamp()
+  }).then(function(docRef){
+    if(!sharedData[id])sharedData[id]={};
+    sharedData[id].emailStatus='pending';
+    sharedData[id].emailDraftId=docRef.id;
+    sharedData[id].who=currentUser;
+    saveToFB(id,sharedData[id]);
+    showToast('📝 Draft vytvorený – čaká na schválenie');
+  }).catch(function(err){
+    showToast('⚠ Chyba: '+err.message);
     if(btn){btn.textContent='📧 Email odoslať';btn.disabled=false;}
   });
 }
@@ -300,8 +307,13 @@ function cardHtml(c){
   var st=d.status||'';
   var notes=d.notes||'';
   var who=d.who||'';
+  var emailStatus=d.emailStatus||'';
   var sb=st?'<span class="sbadge s'+st+'">'+(st==='k'?'Kontaktovaný':st==='a'?'Ponuka':'Uzavreté')+'</span>':'';
-  var el=c.t==='hotel'?'📧 Email odoslať (Hotel)':'📧 Email odoslať (Práčovňa)';
+  var ebCls,ebLabel,ebDis;
+  if(emailStatus==='pending'||emailStatus==='sending'){ebCls='ebtn epending';ebLabel='⏳ Čaká na schválenie';ebDis=' disabled';}
+  else if(emailStatus==='sent'){ebCls='ebtn esent';ebLabel='✓ Email odoslaný';ebDis=' disabled';}
+  else if(emailStatus==='error'){ebCls='ebtn eerror';ebLabel='⚠ Chyba – skúsiť znova';ebDis='';}
+  else{ebCls='ebtn';ebLabel=c.t==='hotel'?'📧 Email odoslať (Hotel)':'📧 Email odoslať (Práčovňa)';ebDis='';}
   return '<div class="contact '+c.t+'">'+
     '<div class="cleft" onclick="toggleCard(this)">'+
     '<div class="cname">'+c.n+sb+'</div>'+
@@ -311,7 +323,7 @@ function cardHtml(c){
     '<div class="drow"><strong>Tel</strong><br><a href="tel:'+c.p+'">'+c.p+'</a></div>'+
     '<div class="drow"><strong>E-Mail</strong><br><a href="mailto:'+c.e+'">'+c.e+'</a></div>'+
     '<div class="drow"><strong>Web</strong><br><a href="https://'+c.w+'" target="_blank">'+c.w+'</a></div>'+
-    '<button class="ebtn" data-id="'+id+'" onclick="event.stopPropagation();sendEmail(\''+id+'\')">'+el+'</button>'+
+    '<button class="'+ebCls+'"'+ebDis+' data-id="'+id+'" onclick="event.stopPropagation();sendEmail(\''+id+'\')">'+ebLabel+'</button>'+
     '<div class="srow">'+
     '<button class="stbtn'+(st==='k'?' ak':'')+'" onclick="event.stopPropagation();setStatus(\''+id+'\',\'k\')">Kontaktovaný</button>'+
     '<button class="stbtn'+(st==='a'?' aa':'')+'" onclick="event.stopPropagation();setStatus(\''+id+'\',\'a\')">Ponuka</button>'+
