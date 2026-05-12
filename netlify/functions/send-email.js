@@ -22,13 +22,13 @@ exports.handler = async (event) => {
     };
   }
 
-  const host = process.env.SMTP_HOST;
-  const port = parseInt(process.env.SMTP_PORT || '587');
+  const host = process.env.SMTP_HOST || 'smtp.ionos.de';
+  const port = 587;
   const user = process.env.SMTP_USER;
   const pass = process.env.SMTP_PASS;
 
-  console.log('[send-email] Config check:', {
-    host: host || 'MISSING',
+  console.log('[send-email] Config:', {
+    host,
     port,
     user: user || 'MISSING',
     pass: pass ? '***set***' : 'MISSING',
@@ -36,7 +36,7 @@ exports.handler = async (event) => {
     subject
   });
 
-  if (!host || !user || !pass) {
+  if (!user || !pass) {
     console.error('[send-email] SMTP env vars missing');
     return {
       statusCode: 500,
@@ -47,15 +47,17 @@ exports.handler = async (event) => {
   try {
     const transporter = nodemailer.createTransport({
       host,
-      port,
-      secure: port === 465,
+      port: 587,
+      secure: false,
       auth: { user, pass },
-      tls: { rejectUnauthorized: false }
+      tls: {
+        rejectUnauthorized: false,
+        ciphers: 'SSLv3'
+      },
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
+      socketTimeout: 15000
     });
-
-    console.log('[send-email] Verifying SMTP connection...');
-    await transporter.verify();
-    console.log('[send-email] SMTP connection OK, sending...');
 
     const htmlBody = message.replace(/\n/g, '<br>');
 
@@ -67,24 +69,17 @@ exports.handler = async (event) => {
       html: `<div style="font-family:Arial,sans-serif;font-size:14px;line-height:1.8;color:#222">${htmlBody}</div>`,
     });
 
-    console.log('[send-email] Sent OK. MessageId:', info.messageId, '| To:', to);
+    console.log('[send-email] Sent OK. MessageId:', info.messageId);
 
     return {
       statusCode: 200,
-      body: JSON.stringify({
-        success: true,
-        sentTo: to,
-        messageId: info.messageId
-      }),
+      body: JSON.stringify({ success: true, sentTo: to, messageId: info.messageId }),
     };
   } catch (error) {
-    console.error('[send-email] SMTP error:', error.message, '| Code:', error.code, '| Response:', error.response);
+    console.error('[send-email] SMTP error:', error.message, '| Code:', error.code);
     return {
       statusCode: 500,
-      body: JSON.stringify({
-        success: false,
-        error: error.message
-      }),
+      body: JSON.stringify({ success: false, error: error.message, code: error.code }),
     };
   }
 };
